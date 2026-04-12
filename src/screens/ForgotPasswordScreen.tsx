@@ -1,17 +1,16 @@
-import React, { useState } from 'react';
+import { SafeAreaView } from "react-native-safe-area-context";
+import React, { useState } from 'react'; // Refreshing file for bundler
 import { 
   View, 
   Text, 
   StyleSheet, 
   TextInput, 
   TouchableOpacity, 
-  SafeAreaView, 
   Image,
   Dimensions
 } from 'react-native';
 import { ChevronLeft } from 'lucide-react-native';
 import { Colors } from '../constants/theme';
-
 const { width } = Dimensions.get('window');
 
 export const ForgotPasswordScreen = ({ navigation }: any) => {
@@ -25,22 +24,19 @@ export const ForgotPasswordScreen = ({ navigation }: any) => {
           <ChevronLeft color={Colors.white} size={28} />
         </TouchableOpacity>
       </View>
-
       <View style={styles.content}>
         {/* Branded Logo Box */}
         <View style={styles.logoBox}>
           <Image 
-            source={require('../assests/icons/logo.png')}
+            source={require('../assets/icons/app-logo.png')}
             style={styles.logo}
             resizeMode="contain"
           />
         </View>
-
         <Text style={styles.title}>Forgot Password?</Text>
         <Text style={styles.subtitle}>
           Enter your email address to receive a {'\n'}verification code.
         </Text>
-
         {/* Input Field */}
         <View style={styles.inputContainer}>
           <TextInput
@@ -53,7 +49,6 @@ export const ForgotPasswordScreen = ({ navigation }: any) => {
             autoCapitalize="none"
           />
         </View>
-
         {/* Continue Button */}
         <TouchableOpacity 
           style={styles.primaryButton}
@@ -61,7 +56,6 @@ export const ForgotPasswordScreen = ({ navigation }: any) => {
         >
           <Text style={styles.primaryButtonText}>Continue</Text>
         </TouchableOpacity>
-
         {/* Footer */}
         <TouchableOpacity 
           style={styles.footer}
@@ -75,7 +69,6 @@ export const ForgotPasswordScreen = ({ navigation }: any) => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

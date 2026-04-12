@@ -1,3 +1,4 @@
+import { SafeAreaView } from "react-native-safe-area-context";
 import React, { useState } from 'react';
 import { 
   View, 
@@ -5,7 +6,6 @@ import {
   StyleSheet, 
   TextInput, 
   TouchableOpacity, 
-  SafeAreaView, 
   Image, 
   KeyboardAvoidingView, 
   Platform,
@@ -27,18 +27,16 @@ export const SignUpScreen = ({ navigation }: any) => {
           <View style={styles.logoContainer}>
             <View style={styles.logoBox}>
               <Image 
-                source={require('../assests/icons/logo.png')}
+                source={require('../assets/icons/app-logo.png')}
                 style={styles.logo}
                 resizeMode="contain"
               />
             </View>
           </View>
-
           {/* Title */}
           <View style={styles.header}>
             <Text style={styles.title}>Sign Up</Text>
           </View>
-
           {/* Form */}
           <View style={styles.form}>
             <View style={styles.inputContainer}>
@@ -48,7 +46,6 @@ export const SignUpScreen = ({ navigation }: any) => {
                 placeholderTextColor={Colors.textSecondary}
               />
             </View>
-
             <View style={styles.inputContainer}>
               <TextInput
                 style={styles.input}
@@ -58,7 +55,6 @@ export const SignUpScreen = ({ navigation }: any) => {
                 keyboardType="email-address"
               />
             </View>
-
             <View style={styles.inputContainer}>
               <TextInput
                 style={styles.input}
@@ -67,7 +63,6 @@ export const SignUpScreen = ({ navigation }: any) => {
                 secureTextEntry
               />
             </View>
-
             <TouchableOpacity 
               style={styles.checkboxContainer} 
               onPress={() => setAgreed(!agreed)}
@@ -79,7 +74,6 @@ export const SignUpScreen = ({ navigation }: any) => {
                 By continuing you accept our <Text style={styles.linkText}>Privacy Policy</Text>
               </Text>
             </TouchableOpacity>
-
             <TouchableOpacity 
               style={styles.primaryButton}
               onPress={() => navigation.navigate('Verification')}
@@ -87,7 +81,6 @@ export const SignUpScreen = ({ navigation }: any) => {
               <Text style={styles.primaryButtonText}>Continue</Text>
             </TouchableOpacity>
           </View>
-
           {/* Footer */}
           <View style={styles.footer}>
             <Text style={styles.footerText}>
@@ -99,7 +92,6 @@ export const SignUpScreen = ({ navigation }: any) => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

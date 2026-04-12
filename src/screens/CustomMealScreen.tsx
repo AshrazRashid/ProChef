@@ -1,10 +1,10 @@
+import { SafeAreaView } from "react-native-safe-area-context";
 import React, { useState, useRef } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   TouchableOpacity, 
-  SafeAreaView, 
   ScrollView, 
   Image,
   Dimensions,
@@ -13,16 +13,12 @@ import {
 } from 'react-native';
 import { ChevronLeft, Sliders, ChevronRight } from 'lucide-react-native';
 import { Colors } from '../constants/theme';
-
 const { width } = Dimensions.get('window');
 const SLIDER_WIDTH = width - 88; // Accounting for all paddings
-
 const CustomSlider = ({ value, min, max, onChange, color, labels }: any) => {
   const pan = useRef(new Animated.ValueXY()).current;
-  
   // Initialize position based on value
   const initialLeft = ((value - min) / (max - min)) * SLIDER_WIDTH;
-  
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -30,7 +26,6 @@ const CustomSlider = ({ value, min, max, onChange, color, labels }: any) => {
         let newLeft = initialLeft + gestureState.dx;
         if (newLeft < 0) newLeft = 0;
         if (newLeft > SLIDER_WIDTH) newLeft = SLIDER_WIDTH;
-        
         const newValue = Math.round(min + (newLeft / SLIDER_WIDTH) * (max - min));
         onChange(newValue);
       },
@@ -39,7 +34,6 @@ const CustomSlider = ({ value, min, max, onChange, color, labels }: any) => {
       }
     })
   ).current;
-
   const leftPercent = ((value - min) / (max - min)) * 100;
 
   return (
@@ -72,21 +66,19 @@ export const CustomMealScreen = ({ navigation }: any) => {
   const [protein, setProtein] = useState(32);
   const [carbs, setCarbs] = useState(45);
   const [fats, setFats] = useState(22);
-
   const variations = [
-    { title: 'High Protein', desc: 'Extra salmon portion served with ancient grain quinoa blend.', value: '35g Protein', badge: 'BEST FOR MUSCLE', image: require('../assests/images/MediterraneanSalmonBowl.png') },
-    { title: 'Low Carb', desc: 'Swap quinoa for cauliflower rice seasoned with fresh herbs.', value: '12g Carbs', badge: 'WEIGHT LOSS', image: require('../assests/images/QuinoaSalad.png') },
+    { title: 'High Protein', desc: 'Extra salmon portion served with ancient grain quinoa blend.', value: '35g Protein', badge: 'BEST FOR MUSCLE', image: require('../assets/images/MediterraneanSalmonBowl.png') },
+    { title: 'Low Carb', desc: 'Swap quinoa for cauliflower rice seasoned with fresh herbs.', value: '12g Carbs', badge: 'WEIGHT LOSS', image: require('../assets/images/QuinoaSalad.png') },
   ];
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main')} style={styles.backButton}>
           <ChevronLeft color={Colors.primary} size={28} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Custom Meal</Text>
       </View>
-
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.summaryCard}>
            <View style={styles.donutContainer}>
@@ -98,23 +90,19 @@ export const CustomMealScreen = ({ navigation }: any) => {
                  </View>
               </View>
            </View>
-           
            <Text style={styles.mealName}>Mediterranean Salmon Bowl</Text>
            <Text style={styles.mealDesc}>Fresh Atlantic salmon, quinoa base, cherry tomatoes, and kalamata olives.</Text>
-           
            <View style={styles.macroRow}>
               <View style={styles.macroItem}><Text style={styles.macroLabel}>PROTEIN</Text><Text style={styles.macroValue}>{protein}g</Text></View>
               <View style={styles.macroItem}><Text style={styles.macroLabel}>CARBS</Text><Text style={styles.macroValue}>{carbs}g</Text></View>
               <View style={styles.macroItem}><Text style={styles.macroLabel}>FATS</Text><Text style={styles.macroValue}>{fats}g</Text></View>
            </View>
         </View>
-
         <View style={styles.tuneSection}>
            <View style={styles.tuneHeader}>
               <Sliders size={20} color={Colors.primary} />
               <Text style={styles.tuneTitle}>Fine-tune Nutrition</Text>
            </View>
-
            <CustomSlider 
               value={protein} 
               min={10} max={60} 
@@ -122,7 +110,6 @@ export const CustomMealScreen = ({ navigation }: any) => {
               color="#426D45" 
               labels={{ title: 'Protein', min: 'MIN (10G)', max: 'MAX (60G)' }} 
            />
-
            <CustomSlider 
               value={carbs} 
               min={0} max={100} 
@@ -130,7 +117,6 @@ export const CustomMealScreen = ({ navigation }: any) => {
               color="#FFB74D" 
               labels={{ title: 'Carbohydrates', min: 'LOW CARB', max: 'HIGH CARB' }} 
            />
-
            <CustomSlider 
               value={fats} 
               min={0} max={50} 
@@ -139,7 +125,6 @@ export const CustomMealScreen = ({ navigation }: any) => {
               labels={{ title: 'Healthy Fats', min: 'LEAN', max: 'HEARTY' }} 
            />
         </View>
-
         <View style={styles.variationsSection}>
            <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Recommended Variations</Text>
@@ -162,15 +147,13 @@ export const CustomMealScreen = ({ navigation }: any) => {
               ))}
            </ScrollView>
         </View>
-
-        <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate('CookingMode')}>
+        <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate('Cooking')}>
            <Text style={styles.primaryButtonText}>Update My Meal</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F5F5' },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },

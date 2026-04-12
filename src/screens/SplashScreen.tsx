@@ -3,9 +3,8 @@ import { View, StyleSheet, Animated, Image } from 'react-native';
 import { Colors } from '../constants/theme';
 
 export const SplashScreen = ({ onFinish }: { onFinish: () => void }) => {
-  const fadeAnim = new Animated.Value(0);
-  const scaleAnim = new Animated.Value(0.9);
-
+  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const scaleAnim = React.useRef(new Animated.Value(0.9)).current;
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -19,7 +18,6 @@ export const SplashScreen = ({ onFinish }: { onFinish: () => void }) => {
         useNativeDriver: true,
       }),
     ]).start();
-
     const timer = setTimeout(() => {
       Animated.timing(fadeAnim, {
         toValue: 0,
@@ -27,15 +25,15 @@ export const SplashScreen = ({ onFinish }: { onFinish: () => void }) => {
         useNativeDriver: true,
       }).start(() => onFinish());
     }, 2500);
-
-    return () => clearTimeout(timer);
+  
+  return () => clearTimeout(timer);
   }, []);
 
   return (
     <View style={styles.container}>
       <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
         <Image 
-          source={require('../assests/icons/logo.png')}
+          source={require('../assets/icons/app-logo.png')}
           style={styles.logo}
           resizeMode="contain"
         />
@@ -43,7 +41,6 @@ export const SplashScreen = ({ onFinish }: { onFinish: () => void }) => {
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

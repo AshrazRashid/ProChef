@@ -1,10 +1,10 @@
+import { SafeAreaView } from "react-native-safe-area-context";
 import React, { useState } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   TouchableOpacity, 
-  SafeAreaView, 
   ScrollView, 
   Image, 
   Dimensions,
@@ -12,12 +12,10 @@ import {
 } from 'react-native';
 import { ChevronLeft, Filter, RotateCcw, Edit3, Bookmark } from 'lucide-react-native';
 import { Colors } from '../constants/theme';
-
 const { width } = Dimensions.get('window');
 
 export const MealDiscoveryScreen = ({ navigation }: any) => {
   const [isMacroImpactEnabled, setIsMacroImpactEnabled] = useState(true);
-
   const meals = [
     {
       id: '1',
@@ -28,7 +26,7 @@ export const MealDiscoveryScreen = ({ navigation }: any) => {
       carb: '35g',
       fat: '22g',
       match: '100% MATCH',
-      image: require('../assests/images/MediterraneanSalmonBowl.png'),
+      image: require('../assets/images/MediterraneanSalmonBowl.png'),
     },
     {
       id: '2',
@@ -37,7 +35,7 @@ export const MealDiscoveryScreen = ({ navigation }: any) => {
       prot: '28g',
       carb: '45g',
       match: '100% MATCH',
-      image: require('../assests/images/ProteinBowl.png'),
+      image: require('../assets/images/ProteinBowl.png'),
     },
     {
       id: '3',
@@ -46,7 +44,7 @@ export const MealDiscoveryScreen = ({ navigation }: any) => {
       prot: '12g',
       carb: '52g',
       match: '95% MATCH',
-      image: require('../assests/images/GreenPowerSmoothie.png'),
+      image: require('../assets/images/GreenPowerSmoothie.png'),
     }
   ];
 
@@ -62,12 +60,11 @@ export const MealDiscoveryScreen = ({ navigation }: any) => {
           <Filter color="#333" size={20} />
         </TouchableOpacity>
       </View>
-
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* AI Insight Box */}
         <View style={styles.aiBox}>
            <View style={styles.aiHeader}>
-              <Image source={require('../assests/icons/creation.png')} style={styles.aiIcon} />
+              <Image source={require('../assets/icons/creation.png')} style={styles.aiIcon} />
               <Text style={styles.aiBoxTitle}>AI INSIGHT</Text>
            </View>
            <Text style={styles.aiBoxDesc}>
@@ -84,7 +81,6 @@ export const MealDiscoveryScreen = ({ navigation }: any) => {
               </TouchableOpacity>
            </View>
         </View>
-
         {/* Options Row */}
         <View style={styles.optionsRow}>
            <View style={styles.switchRow}>
@@ -99,7 +95,6 @@ export const MealDiscoveryScreen = ({ navigation }: any) => {
               <Text style={styles.sortText}>Sort ⌵</Text>
            </TouchableOpacity>
         </View>
-
         {/* List of meals */}
         <TouchableOpacity style={styles.mainCard}>
            <View style={styles.imageContainer}>
@@ -124,7 +119,6 @@ export const MealDiscoveryScreen = ({ navigation }: any) => {
               </View>
            </View>
         </TouchableOpacity>
-
         {meals.slice(1).map(meal => (
            <TouchableOpacity key={meal.id} style={styles.horizontalCard}>
               <Image source={meal.image} style={styles.horizontalImage} />
@@ -144,7 +138,6 @@ export const MealDiscoveryScreen = ({ navigation }: any) => {
               </View>
            </TouchableOpacity>
         ))}
-
         <TouchableOpacity 
           style={styles.viewOtherBtn}
           onPress={() => navigation.navigate('PremiumAccess')}
@@ -155,7 +148,6 @@ export const MealDiscoveryScreen = ({ navigation }: any) => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F5F5' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#FFF' },

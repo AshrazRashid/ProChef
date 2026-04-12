@@ -1,25 +1,25 @@
+import { SafeAreaView } from "react-native-safe-area-context";
 import React from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   TouchableOpacity, 
-  SafeAreaView, 
   ImageBackground,
   Dimensions,
   Image
 } from 'react-native';
 import { ChevronLeft, Settings, Zap } from 'lucide-react-native';
 import { Colors } from '../constants/theme';
-
 const { width, height } = Dimensions.get('window');
 
 export const CameraScanScreen = ({ navigation }: any) => {
+
   return (
     <View style={styles.container}>
       {/* Background simulated camera view */}
       <ImageBackground 
-        source={require('../assests/images/loginImage.png')} // Using loginImage as a placeholder for the scanner background
+        source={require('../assets/images/loginImage.png')} // Using loginImage as a placeholder for the scanner background
         style={styles.cameraView}
         resizeMode="cover"
       >
@@ -37,7 +37,6 @@ export const CameraScanScreen = ({ navigation }: any) => {
               <Settings color={Colors.white} size={24} />
             </TouchableOpacity>
           </View>
-
           {/* Viewfinder */}
           <View style={styles.viewfinderContainer}>
             <View style={styles.viewfinder}>
@@ -52,30 +51,27 @@ export const CameraScanScreen = ({ navigation }: any) => {
               </Text>
             </View>
           </View>
-
           {/* Footer Controls */}
           <View style={styles.footer}>
             <TouchableOpacity style={styles.flashButton}>
               <Zap color={Colors.white} size={24} />
             </TouchableOpacity>
-            
             <TouchableOpacity 
               style={styles.shutterContainer}
               onPress={() => navigation.navigate('Ingredients')}
             >
               <View style={styles.shutterInner}>
                 <Image 
-                  source={require('../assests/icons/photo.png')} 
+                  source={require('../assets/icons/photo.png')} 
                   style={styles.cameraIcon} 
                 />
               </View>
             </TouchableOpacity>
-
             <TouchableOpacity 
               style={styles.galleryButton}
               onPress={() => navigation.navigate('Ingredients')}
             >
-              <Image source={require('../assests/icons/gallery.png')} style={styles.galleryIcon} />
+              <Image source={require('../assets/icons/gallery.png')} style={styles.galleryIcon} />
               <Text style={styles.galleryText}>UPLOAD FROM GALLERY</Text>
             </TouchableOpacity>
           </View>
@@ -84,7 +80,6 @@ export const CameraScanScreen = ({ navigation }: any) => {
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

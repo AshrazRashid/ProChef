@@ -1,32 +1,30 @@
+import { SafeAreaView } from "react-native-safe-area-context";
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   TouchableOpacity, 
-  SafeAreaView, 
   Dimensions
 } from 'react-native';
 import { ChevronLeft, Delete } from 'lucide-react-native';
 import OTPTextInput from 'react-native-otp-textinput';
 import { Colors } from '../constants/theme';
-
 const { width } = Dimensions.get('window');
 
 export const VerificationScreen = ({ navigation }: any) => {
   const [code, setCode] = useState('');
   const otpInput = useRef<any>(null);
-
   // Robust navigation logic using useEffect
   useEffect(() => {
     if (code.length === 4) {
       const timer = setTimeout(() => {
         navigation.navigate('GoalSetup');
       }, 400); 
-      return () => clearTimeout(timer);
+    
+  return () => clearTimeout(timer);
     }
   }, [code, navigation]);
-
   const handlePress = (num: string) => {
     if (code.length < 4) {
       const newCode = code + num;
@@ -34,7 +32,6 @@ export const VerificationScreen = ({ navigation }: any) => {
       otpInput.current?.setValue(newCode);
     }
   };
-
   const handleDelete = () => {
     const newCode = code.slice(0, -1);
     setCode(newCode);
@@ -49,7 +46,6 @@ export const VerificationScreen = ({ navigation }: any) => {
           <ChevronLeft color={Colors.white} size={28} />
         </TouchableOpacity>
       </View>
-
       <View style={styles.content}>
         {/* Title & Subtitle */}
         <Text style={styles.title}>Email Verification</Text>
@@ -57,7 +53,6 @@ export const VerificationScreen = ({ navigation }: any) => {
           We sent a code to your email {'\n'}
           <Text style={styles.emailText}>test@gmail.com</Text> <Text style={styles.changeLink}>Change</Text>
         </Text>
-
         {/* Branded OTP Input Library */}
         <View style={styles.otpWrapper}>
           <OTPTextInput
@@ -71,12 +66,10 @@ export const VerificationScreen = ({ navigation }: any) => {
             keyboardType="numeric"
           />
         </View>
-
         <Text style={styles.resendText}>
           Don't receive your code? <Text style={styles.resendLink}>Resend</Text>
         </Text>
       </View>
-
       {/* Numeric Keypad */}
       <View style={styles.keypad}>
         {[
@@ -113,7 +106,6 @@ export const VerificationScreen = ({ navigation }: any) => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

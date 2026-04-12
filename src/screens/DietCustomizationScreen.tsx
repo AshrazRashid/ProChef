@@ -1,33 +1,30 @@
+import { SafeAreaView } from "react-native-safe-area-context";
 import React, { useState } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   TouchableOpacity, 
-  SafeAreaView, 
   Image, 
   ScrollView,
   Dimensions
 } from 'react-native';
 import { ChevronLeft, AlertCircle } from 'lucide-react-native';
 import { Colors } from '../constants/theme';
-
 const { width } = Dimensions.get('window');
 
 export const DietCustomizationScreen = ({ navigation }: any) => {
   const [selectedGoals, setSelectedGoals] = useState<string[]>(['high_protein']);
   const [restrictions, setRestrictions] = useState<string[]>(['lactose_free']);
   const [allergies, setAllergies] = useState<string[]>([]);
-
   const dietGoals = [
-    { id: 'high_protein', title: 'High Protein', desc: 'Supports muscle growth', icon: require('../assests/icons/protien.png') },
-    { id: 'low_calorie', title: 'Low Calorie', desc: 'Weight management', icon: require('../assests/icons/calories.png') },
-    { id: 'low_carb', title: 'Low Carb / Keto', desc: 'Fat burning focus', icon: require('../assests/icons/organic.png') },
-    { id: 'balanced', title: 'Balanced Diet', desc: 'Sustained energy', icon: require('../assests/icons/creation.png') },
-    { id: 'vegan', title: 'Vegan', desc: 'Plant-based only', icon: require('../assests/icons/vegan.png') },
-    { id: 'vegetarian', title: 'Vegetarian', desc: 'No meat products', icon: require('../assests/icons/vegetarian.png') },
+    { id: 'high_protein', title: 'High Protein', desc: 'Supports muscle growth', icon: require('../assets/icons/protien.png') },
+    { id: 'low_calorie', title: 'Low Calorie', desc: 'Weight management', icon: require('../assets/icons/calories.png') },
+    { id: 'low_carb', title: 'Low Carb / Keto', desc: 'Fat burning focus', icon: require('../assets/icons/organic.png') },
+    { id: 'balanced', title: 'Balanced Diet', desc: 'Sustained energy', icon: require('../assets/icons/creation.png') },
+    { id: 'vegan', title: 'Vegan', desc: 'Plant-based only', icon: require('../assets/icons/vegan.png') },
+    { id: 'vegetarian', title: 'Vegetarian', desc: 'No meat products', icon: require('../assets/icons/vegetarian.png') },
   ];
-
   const toggleGoal = (id: string) => {
     if (selectedGoals.includes(id)) {
       setSelectedGoals(selectedGoals.filter(g => g !== id));
@@ -35,7 +32,6 @@ export const DietCustomizationScreen = ({ navigation }: any) => {
       setSelectedGoals([...selectedGoals, id]);
     }
   };
-
   const toggleRestriction = (id: string) => {
     if (restrictions.includes(id)) {
       setRestrictions(restrictions.filter(r => r !== id));
@@ -43,7 +39,6 @@ export const DietCustomizationScreen = ({ navigation }: any) => {
       setRestrictions([...restrictions, id]);
     }
   };
-
   const toggleAllergy = (id: string) => {
     if (allergies.includes(id)) {
       setAllergies(allergies.filter(a => a !== id));
@@ -62,20 +57,17 @@ export const DietCustomizationScreen = ({ navigation }: any) => {
         <Text style={styles.headerTitle}>Diet Customization</Text>
         <Text style={styles.stepText}>Step 2 of 3</Text>
       </View>
-
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Title */}
         <View style={styles.introContainer}>
           <Text style={styles.introTitle}>Customize Your Diet</Text>
           <Text style={styles.introSubtitle}>We'll tailor meals to your needs</Text>
         </View>
-
         {/* Diet Goals */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>DIET GOALS</Text>
           <Text style={styles.selectText}>SELECT ALL THAT APPLY</Text>
         </View>
-
         <View style={styles.goalsGrid}>
           {dietGoals.map((goal) => (
             <TouchableOpacity 
@@ -95,13 +87,12 @@ export const DietCustomizationScreen = ({ navigation }: any) => {
               <Text style={styles.goalDesc}>{goal.desc}</Text>
               {selectedGoals.includes(goal.id) && (
                 <View style={styles.checkCircle}>
-                  <Image source={require('../assests/icons/tick.png')} style={styles.checkIcon} />
+                  <Image source={require('../assets/icons/tick.png')} style={styles.checkIcon} />
                 </View>
               )}
             </TouchableOpacity>
           ))}
         </View>
-
         {/* Dietary Restrictions */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>DIETARY RESTRICTIONS</Text>
@@ -110,7 +101,8 @@ export const DietCustomizationScreen = ({ navigation }: any) => {
           {['Gluten-Free', 'Lactose-Free', 'Dairy-Free', 'Halal', 'No Sugar'].map((tag) => {
             const id = tag.toLowerCase().replace(' ', '_');
             const isActive = restrictions.includes(id);
-            return (
+          
+  return (
               <TouchableOpacity 
                 key={tag}
                 onPress={() => toggleRestriction(id)}
@@ -121,18 +113,18 @@ export const DietCustomizationScreen = ({ navigation }: any) => {
             );
           })}
         </View>
-
         {/* Allergies */}
         <View style={styles.allergiesSection}>
           <View style={styles.allergyHeader}>
-            <Image source={require('../assests/icons/alert.png')} style={styles.alertIcon} />
+            <Image source={require('../assets/icons/alert.png')} style={styles.alertIcon} />
             <Text style={styles.allergyTitle}>ALLERGIES</Text>
           </View>
           <View style={styles.tagGrid}>
             {['Nuts', 'Shellfish', 'Eggs', 'Soy', 'Dairy'].map((tag) => {
               const id = tag.toLowerCase();
               const isActive = allergies.includes(id);
-              return (
+            
+  return (
                 <TouchableOpacity 
                   key={tag}
                   onPress={() => toggleAllergy(id)}
@@ -147,7 +139,6 @@ export const DietCustomizationScreen = ({ navigation }: any) => {
             We will strictly avoid these ingredients in your meals.
           </Text>
         </View>
-
         {/* Footer Buttons */}
         <View style={styles.buttonRow}>
           <TouchableOpacity 
@@ -167,7 +158,6 @@ export const DietCustomizationScreen = ({ navigation }: any) => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

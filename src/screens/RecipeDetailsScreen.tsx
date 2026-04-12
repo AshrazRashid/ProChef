@@ -1,10 +1,10 @@
+import { SafeAreaView } from "react-native-safe-area-context";
 import React from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   TouchableOpacity, 
-  SafeAreaView, 
   ScrollView, 
   Image, 
   Dimensions,
@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { ChevronLeft, Clock, Flame, Star, Users, CheckCircle2 } from 'lucide-react-native';
 import { Colors } from '../constants/theme';
-
 const { width } = Dimensions.get('window');
 
 export const RecipeDetailsScreen = ({ navigation }: any) => {
@@ -22,14 +21,12 @@ export const RecipeDetailsScreen = ({ navigation }: any) => {
     { label: 'FATS', value: '22g', color: '#E3F2FD', barColor: '#2196F3' },
     { label: 'FIBER', value: '8g', color: '#F3E5F5', barColor: '#9C27B0' },
   ];
-
   const ingredients = [
-    { name: 'Fresh Salmon Fillets', amount: '2 pieces', icon: require('../assests/icons/salmonFillets.png') },
-    { name: 'Organic Quinoa', amount: '1 cup', icon: require('../assests/icons/organic.png') },
-    { name: 'Cucumber & Cherry Tomatoes', amount: '2 cups', icon: require('../assests/icons/herb.png') },
-    { name: 'Lemon Herb Tahini', amount: '3 tbsp', icon: require('../assests/icons/eating.png') },
+    { name: 'Fresh Salmon Fillets', amount: '2 pieces', icon: require('../assets/icons/salmonFillets.png') },
+    { name: 'Organic Quinoa', amount: '1 cup', icon: require('../assets/icons/organic.png') },
+    { name: 'Cucumber & Cherry Tomatoes', amount: '2 cups', icon: require('../assets/icons/herb.png') },
+    { name: 'Lemon Herb Tahini', amount: '3 tbsp', icon: require('../assets/icons/eating.png') },
   ];
-
   const preparation = [
     { title: 'Prepare Quinoa Base', desc: 'Rinse the quinoa and cook in water or vegetable broth for 15 minutes until fluffy. Season with a pinch of sea salt.' },
     { title: 'Sear the Salmon', desc: 'Season salmon with lemon zest and pepper. Sear in a hot skillet for 4 minutes per side until the skin is crispy and the interior is tender.' },
@@ -41,15 +38,14 @@ export const RecipeDetailsScreen = ({ navigation }: any) => {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Header Image */}
         <ImageBackground 
-          source={require('../assests/images/MediterraneanSalmonBowl.png')} 
+          source={require('../assets/images/MediterraneanSalmonBowl.png')} 
           style={styles.heroImage}
         >
           <SafeAreaView>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main')} style={styles.backButton}>
               <ChevronLeft color={Colors.white} size={28} />
             </TouchableOpacity>
           </SafeAreaView>
-          
           <View style={styles.heroOverlay}>
              <View style={styles.typeBadge}>
                <Text style={styles.typeText}>MEDITERRANEAN</Text>
@@ -57,7 +53,6 @@ export const RecipeDetailsScreen = ({ navigation }: any) => {
              <Text style={styles.recipeTitle}>Mediterranean Salmon Bowl</Text>
           </View>
         </ImageBackground>
-
         <View style={styles.content}>
            {/* Quick Stats Row */}
            <View style={styles.statsRow}>
@@ -77,7 +72,6 @@ export const RecipeDetailsScreen = ({ navigation }: any) => {
                  <Text style={styles.statLabel}>RATING</Text>
               </View>
            </View>
-
            {/* Nutritional Pulse */}
            <Text style={styles.sectionTitle}>Nutritional Pulse</Text>
            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.nutritionScroll}>
@@ -91,13 +85,11 @@ export const RecipeDetailsScreen = ({ navigation }: any) => {
                 </View>
               ))}
            </ScrollView>
-
            {/* Ingredients */}
            <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Ingredients</Text>
               <Text style={styles.servingText}>2 Servings</Text>
            </View>
-           
            {ingredients.map((item, index) => (
              <View key={index} style={styles.ingredientItem}>
                 <View style={styles.ingredientIconContainer}>
@@ -107,7 +99,6 @@ export const RecipeDetailsScreen = ({ navigation }: any) => {
                 <Text style={styles.ingredientAmount}>{item.amount}</Text>
              </View>
            ))}
-
            {/* Preparation */}
            <Text style={styles.sectionTitle}>Preparation</Text>
            <View style={styles.preparationContainer}>
@@ -125,7 +116,6 @@ export const RecipeDetailsScreen = ({ navigation }: any) => {
            </View>
         </View>
       </ScrollView>
-
       {/* Footer Buttons */}
       <SafeAreaView style={styles.footer}>
          <TouchableOpacity 
@@ -136,7 +126,7 @@ export const RecipeDetailsScreen = ({ navigation }: any) => {
          </TouchableOpacity>
          <TouchableOpacity 
            style={styles.cookingButton}
-           onPress={() => navigation.navigate('CookingMode')}
+           onPress={() => navigation.navigate('Cooking')}
          >
             <Text style={styles.cookingText}>Start Cooking Mode</Text>
          </TouchableOpacity>
@@ -144,7 +134,6 @@ export const RecipeDetailsScreen = ({ navigation }: any) => {
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

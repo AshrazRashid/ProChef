@@ -1,27 +1,25 @@
+import { SafeAreaView } from "react-native-safe-area-context";
 import React, { useState } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   TouchableOpacity, 
-  SafeAreaView, 
   Image, 
   ScrollView,
   Dimensions
 } from 'react-native';
 import { ChevronLeft } from 'lucide-react-native';
 import { Colors } from '../constants/theme';
-
 const { width } = Dimensions.get('window');
 
 export const GoalSetupScreen = ({ navigation }: any) => {
   const [selectedGoal, setSelectedGoal] = useState('fat_loss');
-
   const goals = [
-    { id: 'fat_loss', title: 'Fat Loss', icon: require('../assests/icons/drop.png') },
-    { id: 'muscle_gain', title: 'Muscle Gain', icon: require('../assests/icons/dumbell.png') },
-    { id: 'maintenance', title: 'Maintenance', icon: require('../assests/icons/maintenance.png') },
-    { id: 'healthy_eating', title: 'Healthy Eating', icon: require('../assests/icons/eating.png') },
+    { id: 'fat_loss', title: 'Fat Loss', icon: require('../assets/icons/drop.png') },
+    { id: 'muscle_gain', title: 'Muscle Gain', icon: require('../assets/icons/dumbell.png') },
+    { id: 'maintenance', title: 'Maintenance', icon: require('../assets/icons/maintenance.png') },
+    { id: 'healthy_eating', title: 'Healthy Eating', icon: require('../assets/icons/eating.png') },
   ];
 
   return (
@@ -34,7 +32,6 @@ export const GoalSetupScreen = ({ navigation }: any) => {
         <Text style={styles.headerTitle}>Goal Setup</Text>
         <Text style={styles.stepText}>Step 1 of 3</Text>
       </View>
-
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Progress Bar */}
         <View style={styles.progressContainer}>
@@ -42,7 +39,6 @@ export const GoalSetupScreen = ({ navigation }: any) => {
             <View style={[styles.progressFill, { width: '33%' }]} />
           </View>
         </View>
-
         {/* Intro */}
         <View style={styles.introContainer}>
           <Text style={styles.introTitle}>
@@ -52,7 +48,6 @@ export const GoalSetupScreen = ({ navigation }: any) => {
             Your metrics help us calculate the perfect nutrition plan for your bioluminescent vitality.
           </Text>
         </View>
-
         {/* Metrics Grid */}
         <View style={styles.metricsGrid}>
           <View style={styles.metricBox}>
@@ -84,14 +79,12 @@ export const GoalSetupScreen = ({ navigation }: any) => {
             </View>
           </View>
         </View>
-
         {/* Goal Selection */}
         <View style={styles.goalSection}>
           <View style={styles.goalHeader}>
             <Text style={styles.goalSectionTitle}>Choose Primary Goal</Text>
             <Text style={styles.selectOneText}>SELECT ONE</Text>
           </View>
-
           <View style={styles.goalsGrid}>
             {goals.map((goal) => (
               <TouchableOpacity 
@@ -112,7 +105,6 @@ export const GoalSetupScreen = ({ navigation }: any) => {
             ))}
           </View>
         </View>
-
         <TouchableOpacity 
           style={styles.primaryButton}
           onPress={() => navigation.navigate('AboutYourself')}
@@ -123,7 +115,6 @@ export const GoalSetupScreen = ({ navigation }: any) => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

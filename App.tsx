@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'; // Refreshing for bundler
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View, Text } from 'react-native';
-import { GestureHandlerRootView, TouchableOpacity } from 'react-native-gesture-handler';
+import { StyleSheet, View, Text ,TouchableOpacity} from 'react-native';
+import { GestureHandlerRootView,  } from 'react-native-gesture-handler';
 import * as SplashScreenLib from 'expo-splash-screen';
 import { useFonts, Inter_400Regular, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold } from '@expo-google-fonts/inter';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { LayoutDashboard, Calendar, Utensils, ChefHat } from 'lucide-react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { SplashScreen } from './src/screens/SplashScreen';
 import { WelcomeScreen } from './src/screens/WelcomeScreen';
@@ -48,30 +49,33 @@ function MainTabs() {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: '#FFF',
-          height: 85,
+          height: 90,
           borderTopWidth: 1,
           borderTopColor: '#F0F0F0',
-          paddingBottom: 25,
+          paddingBottom: 20,
+          paddingTop: 10,
         },
         tabBarActiveTintColor: Colors.primary,
         tabBarInactiveTintColor: '#999',
+        tabBarShowLabel: true,
         tabBarLabelStyle: {
-          fontSize: 10,
+          fontSize: 11,
           fontFamily: 'Inter-Bold',
-          marginBottom: 5,
+          marginTop: 2,
         },
         tabBarIconStyle: {
-          marginBottom: 0,
+          marginTop: 5,
         },
-        tabBarIcon: ({ color, size }) => {
+        tabBarIcon: ({ color, focused }) => {
+          const size = 24;
           if (route.name === 'DashboardTab') {
-            return <LayoutDashboard size={24} color={color} />;
+            return <LayoutDashboard size={size} color={color} strokeWidth={focused ? 2.5 : 2} />;
           } else if (route.name === 'Planner') {
-            return <Calendar size={24} color={color} />;
+            return <Calendar size={size} color={color} strokeWidth={focused ? 2.5 : 2} />;
           } else if (route.name === 'Meal') {
-            return <Utensils size={24} color={color} />;
+            return <Utensils size={size} color={color} strokeWidth={focused ? 2.5 : 2} />;
           } else if (route.name === 'Cooking') {
-            return <ChefHat size={24} color={color} />;
+            return <ChefHat size={size} color={color} strokeWidth={focused ? 2.5 : 2} />;
           }
         },
       })}
@@ -81,7 +85,6 @@ function MainTabs() {
         component={DashboardScreen} 
         options={{ 
           tabBarLabel: 'DASHBOARD',
-          tabBarButton: (props) => <TouchableOpacity {...props} />
         }} 
       />
       <Tab.Screen 
@@ -89,7 +92,6 @@ function MainTabs() {
         component={MealPlannerScreen} 
         options={{ 
           tabBarLabel: 'PLANNER',
-          tabBarButton: (props) => <TouchableOpacity {...props} />
         }} 
       />
       <Tab.Screen 
@@ -97,7 +99,6 @@ function MainTabs() {
         component={MealRecommendationsScreen} 
         options={{ 
           tabBarLabel: 'MEAL',
-          tabBarButton: (props) => <TouchableOpacity {...props} />
         }} 
       />
       <Tab.Screen 
@@ -105,7 +106,6 @@ function MainTabs() {
         component={CookingModeScreen} 
         options={{ 
           tabBarLabel: 'COOKING',
-          tabBarButton: (props) => <TouchableOpacity {...props} />
         }} 
       />
     </Tab.Navigator>
@@ -143,7 +143,8 @@ export default function App() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <NavigationContainer>
+      <SafeAreaProvider>
+        <NavigationContainer>
         <StatusBar style="light" />
         <Stack.Navigator 
           initialRouteName="Main"
@@ -183,6 +184,7 @@ export default function App() {
           <Stack.Screen name="Security" component={SecurityScreen} />
         </Stack.Navigator>
       </NavigationContainer>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }

@@ -1,3 +1,4 @@
+import { SafeAreaView } from "react-native-safe-area-context";
 import React, { useState } from 'react';
 import { 
   View, 
@@ -5,13 +6,11 @@ import {
   StyleSheet, 
   TextInput, 
   TouchableOpacity, 
-  SafeAreaView, 
   Image,
   Dimensions
 } from 'react-native';
 import { ChevronLeft, CreditCard, User, Calendar, Lock, Info, Check } from 'lucide-react-native';
 import { Colors } from '../constants/theme';
-
 const { width } = Dimensions.get('window');
 
 export const AddCardScreen = ({ navigation }: any) => {
@@ -26,7 +25,6 @@ export const AddCardScreen = ({ navigation }: any) => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Your New Card</Text>
       </View>
-
       <View style={styles.content}>
         {/* Visual Card Card */}
         <View style={styles.cardVisual}>
@@ -44,10 +42,9 @@ export const AddCardScreen = ({ navigation }: any) => {
                  <Text style={styles.labelSmall}>EXPIRY</Text>
                  <Text style={styles.expiryVisual}>07/23</Text>
               </View>
-              <Image source={require('../assests/images/visa.png')} style={styles.visaIconSmall} />
+              <Image source={require('../assets/images/visa.png')} style={styles.visaIconSmall} />
            </View>
         </View>
-
         {/* Input Form */}
         <View style={styles.form}>
            <Text style={styles.fieldLabel}>CARD NUMBER</Text>
@@ -59,9 +56,8 @@ export const AddCardScreen = ({ navigation }: any) => {
                 placeholderTextColor="#333"
                 keyboardType="numeric"
               />
-              <Image source={require('../assests/images/visa.png')} style={styles.visaIconInput} />
+              <Image source={require('../assets/images/visa.png')} style={styles.visaIconInput} />
            </View>
-
            <Text style={styles.fieldLabel}>CARDHOLDER NAME</Text>
            <View style={styles.inputContainer}>
               <User color="#999" size={20} />
@@ -71,7 +67,6 @@ export const AddCardScreen = ({ navigation }: any) => {
                 placeholderTextColor="#333"
               />
            </View>
-
            <View style={styles.row}>
               <View style={styles.halfField}>
                  <Text style={styles.fieldLabel}>EXPIRY DATE</Text>
@@ -98,7 +93,6 @@ export const AddCardScreen = ({ navigation }: any) => {
                  </View>
               </View>
            </View>
-
            {/* Checkbox */}
            <TouchableOpacity 
              style={styles.checkboxRow}
@@ -110,15 +104,13 @@ export const AddCardScreen = ({ navigation }: any) => {
               <Text style={styles.checkboxText}>Save your card information. It's confidential.</Text>
            </TouchableOpacity>
         </View>
-
         {/* Confirm Button */}
         <TouchableOpacity 
           style={styles.confirmButton}
-          onPress={() => navigation.navigate('Welcome')} // Payment success?
+          onPress={() => navigation.navigate('Main')} 
         >
            <Text style={styles.confirmButtonText}>Confirm</Text>
         </TouchableOpacity>
-
         <View style={styles.securityRow}>
             <Lock color="#999" size={14} />
             <Text style={styles.securityText}>YOUR PAYMENT DETAILS ARE SECURELY ENCRYPTED</Text>
@@ -127,7 +119,6 @@ export const AddCardScreen = ({ navigation }: any) => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

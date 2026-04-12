@@ -1,10 +1,10 @@
+import { SafeAreaView } from "react-native-safe-area-context";
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   TouchableOpacity, 
-  SafeAreaView, 
   ScrollView,
   Dimensions,
   Image,
@@ -12,7 +12,6 @@ import {
   Animated
 } from 'react-native';
 import { Colors } from '../constants/theme';
-
 const { width } = Dimensions.get('window');
 
 export const AboutYourselfScreen = ({ navigation }: any) => {
@@ -20,11 +19,9 @@ export const AboutYourselfScreen = ({ navigation }: any) => {
   const [age, setAge] = useState(28);
   const [weight, setWeight] = useState(72.5);
   const [height, setHeight] = useState(178);
-
   // Height Slider Animation/Logic
   const sliderWidth = width - 108; // Padding and margins
   const heightAnim = useRef(new Animated.Value((178 - 140) / (220 - 140) * sliderWidth)).current;
-
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -32,7 +29,6 @@ export const AboutYourselfScreen = ({ navigation }: any) => {
         let newX = gestureState.moveX - 54; // Adjust for left padding
         if (newX < 0) newX = 0;
         if (newX > sliderWidth) newX = sliderWidth;
-        
         heightAnim.setValue(newX);
         const newHeightReached = Math.round(140 + (newX / sliderWidth) * (220 - 140));
         setHeight(newHeightReached);
@@ -48,16 +44,13 @@ export const AboutYourselfScreen = ({ navigation }: any) => {
           <Text style={styles.headerTitle}>About yourself</Text>
           <Text style={styles.percentageText}>66%</Text>
         </View>
-
         {/* Progress Bar */}
         <View style={styles.progressContainer}>
           <View style={styles.progressBar}>
             <View style={[styles.progressFill, { width: '66%' }]} />
           </View>
         </View>
-
         <Text style={styles.subtitle}>Help us calculate your perfect nutrition plan.</Text>
-
         {/* Weight Picker UI (Scrollable Ruler) */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -91,7 +84,6 @@ export const AboutYourselfScreen = ({ navigation }: any) => {
             <View style={styles.centerIndicator} />
           </View>
         </View>
-
         {/* Height Slider UI (Functional) */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -110,7 +102,6 @@ export const AboutYourselfScreen = ({ navigation }: any) => {
             </View>
           </View>
         </View>
-
         {/* Age & Gender Row */}
         <View style={styles.row}>
           {/* Age Picker */}
@@ -132,7 +123,6 @@ export const AboutYourselfScreen = ({ navigation }: any) => {
               </TouchableOpacity>
             </View>
           </View>
-
           {/* Gender Picker */}
           <View style={styles.genderCard}>
             <Text style={styles.smallSectionTitle}>GENDER</Text>
@@ -142,7 +132,7 @@ export const AboutYourselfScreen = ({ navigation }: any) => {
             >
               <View style={styles.genderIconContainer}>
                 <Image 
-                  source={require('../assests/icons/female.png')} 
+                  source={require('../assets/icons/female.png')} 
                   style={[styles.genderIcon]} 
                   resizeMode="contain"
                 />
@@ -155,7 +145,7 @@ export const AboutYourselfScreen = ({ navigation }: any) => {
             >
               <View style={styles.genderIconContainer}>
                 <Image 
-                  source={require('../assests/icons/male.png')} 
+                  source={require('../assets/icons/male.png')} 
                   style={[styles.genderIcon]} 
                   resizeMode="contain"
                 />
@@ -164,7 +154,6 @@ export const AboutYourselfScreen = ({ navigation }: any) => {
             </TouchableOpacity>
           </View>
         </View>
-
         <TouchableOpacity 
           style={styles.primaryButton}
           onPress={() => navigation.navigate('DietCustomization')}
@@ -175,7 +164,6 @@ export const AboutYourselfScreen = ({ navigation }: any) => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

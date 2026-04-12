@@ -1,10 +1,10 @@
+import { SafeAreaView } from "react-native-safe-area-context";
 import React, { useState } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   TouchableOpacity, 
-  SafeAreaView, 
   ScrollView,
   Image,
   TextInput,
@@ -12,24 +12,22 @@ import {
 } from 'react-native';
 import { ChevronLeft, MoreVertical, Search, Plus, X, RotateCcw, Trash2, CheckCircle2 } from 'lucide-react-native';
 import { Colors } from '../constants/theme';
-
 const { width } = Dimensions.get('window');
 
 export const IngredientsScreen = ({ navigation }: any) => {
   const [selectedFilter, setSelectedFilter] = useState('All');
-
   const ingredients = [
-    { id: '1', name: 'Chicken Breast', confidence: 'HIGH CONFIDENCE', icon: require('../assests/icons/egg.png'), color: '#FFF' },
-    { id: '2', name: 'Large Eggs', confidence: 'HIGH CONFIDENCE', icon: require('../assests/icons/egg.png'), color: '#FFF' },
-    { id: '3', name: 'Spinach', confidence: 'MEDIUM CONFIDENCE', icon: require('../assests/icons/leaves.png'), color: '#E8F5E9' },
-    { id: '4', name: 'Greek Yogurt', confidence: 'HIGH CONFIDENCE', icon: require('../assests/icons/egg.png'), color: '#FFF' },
+    { id: '1', name: 'Chicken Breast', confidence: 'HIGH CONFIDENCE', icon: require('../assets/icons/egg.png'), color: '#FFF' },
+    { id: '2', name: 'Large Eggs', confidence: 'HIGH CONFIDENCE', icon: require('../assets/icons/egg.png'), color: '#FFF' },
+    { id: '3', name: 'Spinach', confidence: 'MEDIUM CONFIDENCE', icon: require('../assets/icons/leaves.png'), color: '#E8F5E9' },
+    { id: '4', name: 'Greek Yogurt', confidence: 'HIGH CONFIDENCE', icon: require('../assets/icons/egg.png'), color: '#FFF' },
   ];
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main')} style={styles.backButton}>
           <ChevronLeft color="#1A1A1A" size={28} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Ingredients Found</Text>
@@ -37,7 +35,6 @@ export const IngredientsScreen = ({ navigation }: any) => {
           <MoreVertical color="#1A1A1A" size={24} />
         </TouchableOpacity>
       </View>
-
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Detection Card */}
         <View style={styles.detectionCard}>
@@ -46,10 +43,9 @@ export const IngredientsScreen = ({ navigation }: any) => {
             <Text style={styles.detectionSubtitle}>Remove anything you don't have or {'\n'}add missing items</Text>
           </View>
           <View style={styles.sparkleCircle}>
-            <Image source={require('../assests/icons/creation.png')} style={styles.sparkleIcon} />
+            <Image source={require('../assets/icons/creation.png')} style={styles.sparkleIcon} />
           </View>
         </View>
-
         {/* Filter Tabs */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
           {['All', 'Protein', 'Vegetables', 'Fruits', 'Dairy'].map((filter) => (
@@ -62,7 +58,6 @@ export const IngredientsScreen = ({ navigation }: any) => {
             </TouchableOpacity>
           ))}
         </ScrollView>
-
         {/* Search / Add Section */}
         <View style={styles.searchSection}>
           <Text style={styles.searchTitle}>Missing something?</Text>
@@ -80,7 +75,6 @@ export const IngredientsScreen = ({ navigation }: any) => {
             </TouchableOpacity>
           </View>
         </View>
-
         {/* Action Buttons */}
         <View style={styles.actionRow}>
           <TouchableOpacity style={styles.actionButton}>
@@ -96,7 +90,6 @@ export const IngredientsScreen = ({ navigation }: any) => {
             <Text style={styles.actionButtonText}>RESCAN</Text>
           </TouchableOpacity>
         </View>
-
         {/* Ingredients Grid */}
         <View style={styles.ingredientsGrid}>
           {ingredients.map((item) => (
@@ -122,13 +115,11 @@ export const IngredientsScreen = ({ navigation }: any) => {
             </View>
           ))}
         </View>
-
         <View style={styles.selectionLabelContainer}>
            <TouchableOpacity style={styles.selectionButton}>
               <Text style={styles.selectionButtonText}>8 INGREDIENTS SELECTED</Text>
            </TouchableOpacity>
         </View>
-
         {/* Footer Buttons */}
         <View style={styles.footerButtons}>
           <TouchableOpacity 
@@ -148,7 +139,6 @@ export const IngredientsScreen = ({ navigation }: any) => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

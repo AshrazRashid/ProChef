@@ -1,10 +1,10 @@
+import { SafeAreaView } from "react-native-safe-area-context";
 import React, { useState } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   TouchableOpacity, 
-  SafeAreaView, 
   ScrollView, 
   Image,
   TextInput,
@@ -12,13 +12,11 @@ import {
 } from 'react-native';
 import { ChevronLeft, Plus, Check } from 'lucide-react-native';
 import { Colors } from '../constants/theme';
-
 const { width } = Dimensions.get('window');
 
 export const ShoppingListScreen = ({ navigation }: any) => {
   const [selectedFilter, setSelectedFilter] = useState('All Items');
-  const [checkedItems, setCheckedItems] = useState<string[]>([]);
-
+  const [checkedItems, setCheckedItems] = useState<string[]>(['2', '3', '4']); // Some checked for demo
   const toggleCheck = (id: string) => {
     if (checkedItems.includes(id)) {
       setCheckedItems(checkedItems.filter(i => i !== id));
@@ -26,30 +24,29 @@ export const ShoppingListScreen = ({ navigation }: any) => {
       setCheckedItems([...checkedItems, id]);
     }
   };
-
   const shoppingItems = [
     { 
       category: 'Vegetables', 
       count: '2 ITEMS',
       items: [
-        { id: '1', name: 'Spinach', details: 'Organic, 500g', image: require('../assests/images/SpinachOmelette.png') },
-        { id: '2', name: 'Garlic', details: '2 Whole Bulbs', image: require('../assests/icons/onion.png') },
+        { id: '1', name: 'Spinach', details: 'Organic, 500g', image: require('../assets/images/SpinachOmelette.png'), isPhoto: true },
+        { id: '2', name: 'Garlic', details: '2 Whole Bulbs', image: require('../assets/icons/onion.png'), isPhoto: false },
       ]
     },
     { 
       category: 'Dairy', 
       count: '3 ITEMS',
       items: [
-        { id: '3', name: 'Greek Yogurt', details: 'Full Fat, 1kg', image: require('../assests/icons/egg.png') },
-        { id: '4', name: 'Parmesan', details: 'Aged 24 Months, 200g', image: require('../assests/icons/egg.png') },
-        { id: '5', name: 'Almond Milk', details: 'Unsweetened, 1L', image: require('../assests/images/GreenPowerSmoothie.png') },
+        { id: '3', name: 'Greek Yogurt', details: 'Full Fat, 1kg', image: require('../assets/icons/egg.png'), isPhoto: false },
+        { id: '4', name: 'Parmesan', details: 'Aged 24 Months, 200g', image: require('../assets/icons/egg.png'), isPhoto: false },
+        { id: '5', name: 'Almond Milk', details: 'Unsweetened, 1L', image: require('../assets/images/GreenPowerSmoothie.png'), isPhoto: true },
       ]
     },
     { 
       category: 'Protein', 
       count: '1 ITEM',
       items: [
-        { id: '6', name: 'Salmon Fillets', details: 'Wild Caught, 2pcs', image: require('../assests/images/MediterraneanSalmonBowl.png') },
+        { id: '6', name: 'Salmon Fillets', details: 'Wild Caught, 2pcs', image: require('../assets/images/MediterraneanSalmonBowl.png'), isPhoto: true },
       ]
     }
   ];
@@ -66,7 +63,6 @@ export const ShoppingListScreen = ({ navigation }: any) => {
            <Text style={styles.headerSubtitle}>Insufficient Ingredients</Text>
         </View>
       </View>
-
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Add Item Bar */}
         <View style={styles.addBar}>
@@ -79,7 +75,6 @@ export const ShoppingListScreen = ({ navigation }: any) => {
               <Plus color={Colors.white} size={24} />
            </TouchableOpacity>
         </View>
-
         {/* Filter Chips */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
            {['All Items', 'Vegetables', 'Dairy', 'Protein'].map(chip => (
@@ -92,7 +87,6 @@ export const ShoppingListScreen = ({ navigation }: any) => {
              </TouchableOpacity>
            ))}
         </ScrollView>
-
         {/* Categories */}
         {shoppingItems.map((cat, idx) => (
            <View key={idx} style={styles.categorySection}>
@@ -102,15 +96,18 @@ export const ShoppingListScreen = ({ navigation }: any) => {
                     <Text style={styles.countText}>{cat.count}</Text>
                  </View>
               </View>
-
               {cat.items.map((item) => (
                  <TouchableOpacity 
                    key={item.id} 
                    style={styles.itemRow}
                    onPress={() => toggleCheck(item.id)}
                  >
-                    <View style={styles.itemImageContainer}>
-                       <Image source={item.image} style={styles.itemImage} />
+                    <View style={[styles.itemImageContainer, !item.isPhoto && styles.iconContainer]}>
+                       <Image 
+                         source={item.image} 
+                         style={[styles.itemImage, !item.isPhoto && styles.iconImage]} 
+                         resizeMode={item.isPhoto ? "cover" : "contain"}
+                       />
                     </View>
                     <View style={styles.itemInfo}>
                        <Text style={styles.itemName}>{item.name}</Text>
@@ -127,7 +124,6 @@ export const ShoppingListScreen = ({ navigation }: any) => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF' },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F5F5F5' },
@@ -150,7 +146,9 @@ const styles = StyleSheet.create({
   countText: { color: '#426D45', fontSize: 10, fontFamily: 'Inter-Bold' },
   itemRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', padding: 12, borderRadius: 24, marginBottom: 12, borderWidth: 1, borderColor: '#EEE' },
   itemImageContainer: { width: 56, height: 56, borderRadius: 16, overflow: 'hidden', marginRight: 16 },
-  itemImage: { width: '100%', height: '100%', resizeMode: 'cover' },
+  iconContainer: { backgroundColor: '#F5F5F5', justifyContent: 'center', alignItems: 'center' },
+  itemImage: { width: '100%', height: '100%' },
+  iconImage: { width: 32, height: 32, tintColor: '#666' },
   itemInfo: { flex: 1 },
   itemName: { color: Colors.primary, fontSize: 16, fontFamily: 'Inter-Bold', marginBottom: 4 },
   itemDetails: { color: '#999', fontSize: 12, fontFamily: 'Inter-Regular' },

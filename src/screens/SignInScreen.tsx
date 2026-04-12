@@ -1,3 +1,4 @@
+import { SafeAreaView } from "react-native-safe-area-context";
 import React, { useState } from 'react';
 import { 
   View, 
@@ -5,12 +6,10 @@ import {
   StyleSheet, 
   TextInput, 
   TouchableOpacity, 
-  SafeAreaView, 
   Image,
   Dimensions
 } from 'react-native';
 import { Colors } from '../constants/theme';
-
 const { width } = Dimensions.get('window');
 
 export const SignInScreen = ({ navigation }: any) => {
@@ -23,14 +22,12 @@ export const SignInScreen = ({ navigation }: any) => {
         {/* Branded Logo Box */}
         <View style={styles.logoBox}>
           <Image 
-            source={require('../assests/icons/logo.png')}
+            source={require('../assets/icons/app-logo.png')}
             style={styles.logo}
             resizeMode="contain"
           />
         </View>
-
         <Text style={styles.title}>Sign In</Text>
-
         {/* Input Fields */}
         <View style={styles.inputContainer}>
           <TextInput
@@ -49,7 +46,6 @@ export const SignInScreen = ({ navigation }: any) => {
             secureTextEntry
           />
         </View>
-
         {/* Continue Button */}
         <TouchableOpacity 
           style={styles.primaryButton}
@@ -57,14 +53,12 @@ export const SignInScreen = ({ navigation }: any) => {
         >
           <Text style={styles.primaryButtonText}>Continue</Text>
         </TouchableOpacity>
-
         {/* Forgot Password */}
         <TouchableOpacity 
           onPress={() => navigation.navigate('ForgotPassword')}
         >
           <Text style={styles.forgotText}>Forgot Password?</Text>
         </TouchableOpacity>
-
         {/* Footer */}
         <TouchableOpacity 
           style={styles.footer}
@@ -78,7 +72,6 @@ export const SignInScreen = ({ navigation }: any) => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

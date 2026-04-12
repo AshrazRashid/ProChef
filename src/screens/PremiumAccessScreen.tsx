@@ -1,22 +1,20 @@
+import { SafeAreaView } from "react-native-safe-area-context";
 import React, { useState } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   TouchableOpacity, 
-  SafeAreaView, 
   ScrollView, 
   Image,
   Dimensions
 } from 'react-native';
 import { X, CheckCircle2, ShieldCheck, CalendarRange, Star } from 'lucide-react-native';
 import { Colors } from '../constants/theme';
-
 const { width } = Dimensions.get('window');
 
 export const PremiumAccessScreen = ({ navigation }: any) => {
   const [selectedPlan, setSelectedPlan] = useState('yearly');
-
   const features = [
     { title: 'Unlimited AI Scans', desc: 'Instant nutritional data for any dish.' },
     { title: 'Advanced AI Meal Plans', desc: 'Evolving plans that learn your tastes.' },
@@ -34,7 +32,6 @@ export const PremiumAccessScreen = ({ navigation }: any) => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Premium Access</Text>
       </View>
-
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Hero Section */}
         <View style={styles.hero}>
@@ -48,7 +45,6 @@ export const PremiumAccessScreen = ({ navigation }: any) => {
              Elevate your wellness journey with our most advanced AI-powered nutritional precision.
            </Text>
         </View>
-
         {/* Pricing Plans */}
         <View style={styles.plansContainer}>
           {/* Monthly Plan */}
@@ -64,7 +60,6 @@ export const PremiumAccessScreen = ({ navigation }: any) => {
             <Text style={styles.planDesc}>Flexible month-to-month access to all premium features.</Text>
             <View style={styles.planLine} />
           </TouchableOpacity>
-
           {/* Yearly Plan */}
           <TouchableOpacity 
             style={[styles.planCard, selectedPlan === 'yearly' && styles.planCardActive]}
@@ -87,7 +82,6 @@ export const PremiumAccessScreen = ({ navigation }: any) => {
             <View style={[styles.planLine, styles.planLineActive]} />
           </TouchableOpacity>
         </View>
-
         {/* Features List */}
         <View style={styles.featuresSection}>
            <Text style={styles.featuresTitle}>Unlock Full Capability</Text>
@@ -101,7 +95,6 @@ export const PremiumAccessScreen = ({ navigation }: any) => {
              </View>
            ))}
         </View>
-
         {/* Confidence Row */}
         <View style={styles.confidenceRow}>
            <View style={styles.confidenceItem}>
@@ -117,7 +110,6 @@ export const PremiumAccessScreen = ({ navigation }: any) => {
            <Star color={Colors.white} size={16} fill={Colors.white} />
            <Text style={styles.ratingText}>4.9/5 USER RATING</Text>
         </View>
-
         {/* Action Button */}
         <TouchableOpacity 
           style={styles.primaryButton}
@@ -129,7 +121,6 @@ export const PremiumAccessScreen = ({ navigation }: any) => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

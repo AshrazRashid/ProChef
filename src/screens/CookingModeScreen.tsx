@@ -1,17 +1,16 @@
+import { SafeAreaView } from "react-native-safe-area-context";
 import React from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   TouchableOpacity, 
-  SafeAreaView, 
   ScrollView, 
   Image, 
   Dimensions
 } from 'react-native';
 import { ChevronLeft, Clock, Flame, Utensils, Zap, Leaf, ShoppingBag, ArrowRight } from 'lucide-react-native';
 import { Colors } from '../constants/theme';
-
 const { width } = Dimensions.get('window');
 
 export const CookingModeScreen = ({ navigation }: any) => {
@@ -20,7 +19,6 @@ export const CookingModeScreen = ({ navigation }: any) => {
     { group: 'VEGETABLES', items: [{ name: 'Spinach', weight: '' }, { name: 'Onion', weight: '' }], icon: <Leaf size={16} color={Colors.primary} /> },
     { group: 'BASE', items: [{ name: 'Whole-wheat Tortilla', weight: '' }], icon: <Utensils size={16} color={Colors.primary} /> },
   ];
-
   const steps = [
     { 
       number: '01', 
@@ -50,31 +48,27 @@ export const CookingModeScreen = ({ navigation }: any) => {
            <Text style={styles.headerSubtitle}>Start Cooking</Text>
         </View>
       </View>
-
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Main Image */}
         <View style={styles.imageContainer}>
-           <Image source={require('../assests/images/ProteinBowl.png')} style={styles.mainImage} />
+           <Image source={require('../assets/images/ProteinBowl.png')} style={styles.mainImage} />
            <View style={styles.difficultyBadge}>
               <Text style={styles.difficultyText}>EASY</Text>
            </View>
         </View>
-
         {/* Quick Stats */}
         <View style={styles.statsRow}>
            <View style={styles.statBox}>
               <Clock size={16} color={Colors.primary} />
-              <Text style={statDetail}>20 mins</Text>
+              <Text style={styles.statDetail}>20 mins</Text>
            </View>
         </View>
-        
         <View style={styles.nutritionGrid}>
            <View style={styles.nutBox}><Text style={styles.nutLabel}>CAL</Text><Text style={styles.nutVal}>420</Text></View>
            <View style={styles.nutBox}><Text style={styles.nutLabel}>PROT</Text><Text style={styles.nutVal}>45g</Text></View>
            <View style={styles.nutBox}><Text style={styles.nutLabel}>CARBS</Text><Text style={styles.nutVal}>30g</Text></View>
            <View style={styles.nutBox}><Text style={styles.nutLabel}>FAT</Text><Text style={styles.nutVal}>15g</Text></View>
         </View>
-
         {/* Ingredients Grouped */}
         <Text style={styles.sectionTitle}>Ingredients</Text>
         {ingredients.map((group, idx) => (
@@ -93,7 +87,6 @@ export const CookingModeScreen = ({ navigation }: any) => {
               ))}
            </View>
         ))}
-
         {/* Step by Step */}
         <Text style={styles.sectionTitle}>Step-by-Step</Text>
         {steps.map((step, idx) => (
@@ -106,7 +99,6 @@ export const CookingModeScreen = ({ navigation }: any) => {
               </View>
               <Text style={styles.stepTitle}>{step.title}</Text>
               <Text style={styles.stepDesc}>{step.desc}</Text>
-              
               {step.tip && (
                 <View style={styles.tipBox}>
                    <Flame size={16} color="#426D45" />
@@ -116,7 +108,6 @@ export const CookingModeScreen = ({ navigation }: any) => {
                    </View>
                 </View>
               )}
-
               {step.suggestion && (
                  <View style={styles.suggestionBox}>
                    <Zap size={16} color="#426D45" />
@@ -125,17 +116,15 @@ export const CookingModeScreen = ({ navigation }: any) => {
               )}
            </View>
         ))}
-
         {/* Needed Ingredients */}
         <View style={styles.neededSection}>
            <View style={styles.neededHeader}>
               <ShoppingBag size={20} color={Colors.primary} />
               <Text style={styles.neededTitle}>Needed Ingredients</Text>
            </View>
-           
            <View style={[styles.neededItem, { backgroundColor: '#F9F9F9' }]}>
               <View style={styles.itemIconCircle}>
-                 <Image source={require('../assests/icons/onion.png')} style={styles.itemIcon} resizeMode="contain" />
+                 <Image source={require('../assets/icons/onion.png')} style={styles.itemIcon} resizeMode="contain" />
               </View>
               <View style={styles.itemInfo}>
                  <Text style={styles.neededName}>Garlic</Text>
@@ -145,10 +134,9 @@ export const CookingModeScreen = ({ navigation }: any) => {
                  <ArrowRight size={16} color={Colors.primary} />
               </TouchableOpacity>
            </View>
-
            <View style={[styles.neededItem, styles.premiumItem]}>
               <View style={[styles.itemIconCircle, { backgroundColor: '#426D45' }]}>
-                 <Image source={require('../assests/icons/egg.png')} style={[styles.itemIcon, { tintColor: '#FFF' }]} resizeMode="contain" />
+                 <Image source={require('../assets/icons/egg.png')} style={[styles.itemIcon, { tintColor: '#FFF' }]} resizeMode="contain" />
               </View>
               <View style={styles.itemInfo}>
                  <Text style={styles.neededName}>Parmesan</Text>
@@ -159,7 +147,6 @@ export const CookingModeScreen = ({ navigation }: any) => {
               </TouchableOpacity>
            </View>
         </View>
-
         {/* Footer Buttons */}
         <View style={styles.footer}>
            <TouchableOpacity 
@@ -176,7 +163,6 @@ export const CookingModeScreen = ({ navigation }: any) => {
     </SafeAreaView>
   );
 };
-
 // ... styles remain the same (statDetail fix)
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F5F5' },

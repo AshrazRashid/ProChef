@@ -1,10 +1,10 @@
+import { SafeAreaView } from "react-native-safe-area-context";
 import React, { useState } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   TouchableOpacity, 
-  SafeAreaView, 
   ScrollView, 
   Image,
   Dimensions,
@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { ChevronLeft, Filter, Zap, Heart, LayoutDashboard, Calendar, Utensils, ChefHat, AlertCircle } from 'lucide-react-native';
 import { Colors } from '../constants/theme';
-
 const { width } = Dimensions.get('window');
 
 export const MealRecommendationsScreen = ({ navigation }: any) => {
@@ -30,7 +29,6 @@ export const MealRecommendationsScreen = ({ navigation }: any) => {
            <Filter color={Colors.primary} size={20} />
         </TouchableOpacity>
       </View>
-
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Category Chips */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
@@ -40,7 +38,6 @@ export const MealRecommendationsScreen = ({ navigation }: any) => {
              </TouchableOpacity>
            ))}
         </ScrollView>
-
         {/* Macro Visualizer Header */}
         <View style={styles.macroHeader}>
            <Text style={styles.macroTitle}>Macro Visualizer</Text>
@@ -53,14 +50,13 @@ export const MealRecommendationsScreen = ({ navigation }: any) => {
               />
            </View>
         </View>
-
         {/* Main Recommendation Card */}
         <TouchableOpacity 
           style={styles.mainCard}
           onPress={() => navigation.navigate('RecipeDetails')}
         >
            <View style={styles.imageContainer}>
-              <Image source={require('../assests/images/LemonChicken.png')} style={styles.mainImage} />
+              <Image source={require('../assets/images/LemonChicken.png')} style={styles.mainImage} />
               <View style={styles.badgesCol}>
                  <View style={styles.badgeLabel}><Text style={styles.badgeTextSmall}>HIGH PROTEIN</Text></View>
                  <View style={[styles.badgeLabel, { backgroundColor: Colors.primary }]}><Text style={styles.badgeTextSmall}>100% MATCH</Text></View>
@@ -70,9 +66,8 @@ export const MealRecommendationsScreen = ({ navigation }: any) => {
            <View style={styles.cardInfo}>
               <View style={styles.cardHeader}>
                  <Text style={styles.mainTitle}>Zesty Lemon Chicken with Spinach</Text>
-                 <View style={styles.timeRow}><Image source={require('../assests/icons/tick.png')} style={styles.timeIcon} /><Text style={styles.timeText}>15 min</Text></View>
+                 <View style={styles.timeRow}><Image source={require('../assets/icons/tick.png')} style={styles.timeIcon} /><Text style={styles.timeText}>15 min</Text></View>
               </View>
-
               <View style={styles.nutritionGrid}>
                  {[
                    { l: 'CALS', v: '450', c: '#E8F5E9' },
@@ -86,14 +81,12 @@ export const MealRecommendationsScreen = ({ navigation }: any) => {
                    </View>
                  ))}
               </View>
-
               <View style={styles.actionRow}>
                  <TouchableOpacity style={styles.viewRecipeBtn}><Text style={styles.viewRecipeText}>View Recipe</Text></TouchableOpacity>
                  <TouchableOpacity style={styles.flashBtn}><Zap size={20} color={Colors.primary} /></TouchableOpacity>
               </View>
            </View>
         </TouchableOpacity>
-
         {/* Best Match Banner */}
         <TouchableOpacity style={styles.bannerCard}>
            <View style={styles.bannerContent}>
@@ -103,7 +96,6 @@ export const MealRecommendationsScreen = ({ navigation }: any) => {
               </View>
               <Text style={styles.bannerTitle}>Super-Green Protein Bowl</Text>
               <Text style={styles.bannerDesc}>"Highest protein with lowest calories based on your fat loss goal"</Text>
-              
               <View style={styles.bannerStats}>
                  <View>
                     <Text style={styles.bannerStatLabel}>EFFICIENCY</Text>
@@ -117,13 +109,12 @@ export const MealRecommendationsScreen = ({ navigation }: any) => {
               </View>
            </View>
            <View style={styles.bannerImageContainer}>
-              <Image source={require('../assests/images/QuinoaSalad.png')} style={styles.bannerImage} />
+              <Image source={require('../assets/images/QuinoaSalad.png')} style={styles.bannerImage} />
            </View>
         </TouchableOpacity>
-
         {/* Secondary Recommendation */}
         <TouchableOpacity style={styles.listCard}>
-           <Image source={require('../assests/images/SpinachAndOmelette.png')} style={styles.listImage} />
+           <Image source={require('../assets/images/SpinachAndOmelette.png')} style={styles.listImage} />
            <View style={styles.listContent}>
               <Text style={styles.listTitle}>Spinach & Feta Egg Scramble</Text>
               <View style={styles.warningRow}>
@@ -137,18 +128,9 @@ export const MealRecommendationsScreen = ({ navigation }: any) => {
            </View>
         </TouchableOpacity>
       </ScrollView>
-
-      {/* Tab Bar */}
-      <View style={styles.tabBar}>
-         <TouchableOpacity style={styles.tabItem}><LayoutDashboard size={24} color="#999" /><Text style={styles.tabLabel}>DASHBOARD</Text></TouchableOpacity>
-         <TouchableOpacity style={styles.tabItem}><Calendar size={24} color="#999" /><Text style={styles.tabLabel}>PLANNER</Text></TouchableOpacity>
-         <TouchableOpacity style={[styles.tabItem, styles.tabActive]}><Utensils size={24} color={Colors.primary} /><Text style={[styles.tabLabel, { color: Colors.primary }]}>MEAL</Text></TouchableOpacity>
-         <TouchableOpacity style={styles.tabItem}><ChefHat size={24} color="#999" /><Text style={styles.tabLabel}>COOKING</Text></TouchableOpacity>
-      </View>
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F8F8' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#FFF' },

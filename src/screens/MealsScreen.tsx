@@ -1,10 +1,10 @@
+import { SafeAreaView } from "react-native-safe-area-context";
 import React, { useState } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   TouchableOpacity, 
-  SafeAreaView, 
   ScrollView, 
   Image, 
   Dimensions,
@@ -12,13 +12,11 @@ import {
 } from 'react-native';
 import { ChevronLeft, Filter, Clock, ChefHat, Plus } from 'lucide-react-native';
 import { Colors } from '../constants/theme';
-
 const { width } = Dimensions.get('window');
 
 export const MealsScreen = ({ navigation }: any) => {
   const [isMacroImpactEnabled, setIsMacroImpactEnabled] = useState(true);
   const [selectedFilter, setSelectedFilter] = useState('All');
-
   const meals = [
     {
       id: '1',
@@ -31,7 +29,7 @@ export const MealsScreen = ({ navigation }: any) => {
       time: '15m',
       difficulty: 'Easy',
       match: '100% MATCH',
-      image: require('../assests/images/MediterraneanSalmonBowl.png'),
+      image: require('../assets/images/MediterraneanSalmonBowl.png'),
       isLarge: true
     },
     {
@@ -43,7 +41,7 @@ export const MealsScreen = ({ navigation }: any) => {
       time: '12m',
       difficulty: 'Low',
       match: '100% MATCH',
-      image: require('../assests/images/ProteinBowl.png')
+      image: require('../assets/images/ProteinBowl.png')
     },
     {
       id: '3',
@@ -54,7 +52,7 @@ export const MealsScreen = ({ navigation }: any) => {
       time: '20m',
       difficulty: 'Med',
       match: '95% MATCH',
-      image: require('../assests/images/GreenPowerSmoothie.png')
+      image: require('../assets/images/GreenPowerSmoothie.png')
     },
     {
       id: '4',
@@ -65,7 +63,7 @@ export const MealsScreen = ({ navigation }: any) => {
       time: '10m',
       difficulty: 'Low',
       match: '100% MATCH',
-      image: require('../assests/images/QuinoaSalad.png')
+      image: require('../assets/images/QuinoaSalad.png')
     },
     {
       id: '5',
@@ -76,7 +74,7 @@ export const MealsScreen = ({ navigation }: any) => {
       time: '8m',
       difficulty: 'Easy',
       match: '100% MATCH',
-      image: require('../assests/images/LemonChicken.png')
+      image: require('../assets/images/LemonChicken.png')
     }
   ];
 
@@ -92,7 +90,6 @@ export const MealsScreen = ({ navigation }: any) => {
           <Filter color={Colors.secondary} size={20} />
         </TouchableOpacity>
       </View>
-
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Chips */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
@@ -106,7 +103,6 @@ export const MealsScreen = ({ navigation }: any) => {
             </TouchableOpacity>
           ))}
         </ScrollView>
-
         {/* Macro Switch Section */}
         <View style={styles.macroHeader}>
           <View>
@@ -123,7 +119,6 @@ export const MealsScreen = ({ navigation }: any) => {
             />
           </View>
         </View>
-
         {/* Meals List */}
         {meals.map((meal) => (
           <TouchableOpacity 
@@ -134,11 +129,10 @@ export const MealsScreen = ({ navigation }: any) => {
             <View style={meal.isLarge ? styles.imageContainerLarge : styles.imageContainerSmall}>
               <Image source={meal.image} style={styles.image} />
               <View style={styles.matchBadge}>
-                {meal.isLarge && <Image source={require('../assests/icons/tick.png')} style={styles.matchIcon} />}
+                {meal.isLarge && <Image source={require('../assets/icons/tick.png')} style={styles.matchIcon} />}
                 <Text style={styles.matchText}>{meal.match}</Text>
               </View>
             </View>
-            
             <View style={styles.cardContent}>
               {meal.isLarge && (
                 <View style={styles.pillLabel}>
@@ -147,7 +141,6 @@ export const MealsScreen = ({ navigation }: any) => {
               )}
               <Text style={meal.isLarge ? styles.largeTitle : styles.smallTitle}>{meal.title}</Text>
               {meal.isLarge && <Text style={styles.largeDesc}>{meal.desc}</Text>}
-              
               {/* Nutrition */}
               <View style={styles.nutritionRow}>
                 {meal.isLarge ? (
@@ -165,7 +158,6 @@ export const MealsScreen = ({ navigation }: any) => {
                    </View>
                 )}
               </View>
-
               {/* Meta */}
               <View style={styles.metaRow}>
                 <View style={styles.metaItem}><Clock size={14} color="#666" /><Text style={styles.metaText}>{meal.time}</Text></View>
@@ -179,8 +171,6 @@ export const MealsScreen = ({ navigation }: any) => {
             </View>
           </TouchableOpacity>
         ))}
-
-        {/* The "Update Meal" button from the design */}
         <TouchableOpacity 
           style={styles.bottomButton}
           onPress={() => navigation.navigate('MealDiscovery')}
@@ -191,14 +181,13 @@ export const MealsScreen = ({ navigation }: any) => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 10 },
   backButton: { padding: 4 },
   headerTitle: { color: Colors.white, fontSize: 18, fontFamily: 'Inter-Bold' },
   filterButton: { padding: 8, backgroundColor: '#1A1A1A', borderRadius: 8 },
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 40 },
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 100 },
   chipScroll: { marginVertical: 15 },
   chip: { paddingHorizontal: 24, paddingVertical: 10, borderRadius: 20, backgroundColor: '#1A1A1A', marginRight: 10 },
   chipActive: { backgroundColor: Colors.secondary },
@@ -238,4 +227,8 @@ const styles = StyleSheet.create({
   viewRecipeText: { marginLeft: 'auto', color: Colors.secondary, fontSize: 10, fontFamily: 'Inter-Bold' },
   bottomButton: { backgroundColor: Colors.primary, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', marginTop: 10 },
   bottomButtonText: { color: Colors.white, fontSize: 18, fontFamily: 'Inter-SemiBold' },
+  tabBar: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 80, backgroundColor: '#1A1A1A', flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#333', paddingBottom: 20 },
+  tabItem: { alignItems: 'center' },
+  tabActive: { borderTopWidth: 2, borderTopColor: Colors.secondary, paddingTop: 6 },
+  tabLabel: { fontSize: 8, color: '#999', fontFamily: 'Inter-Bold', marginTop: 4 },
 });
