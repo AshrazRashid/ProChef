@@ -1,16 +1,17 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Dimensions, Image, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ScanLine, BrainCircuit, ChevronRight } from 'lucide-react-native';
 import { Colors } from '../constants/theme';
 import { FeatureItem } from '../components/FeatureItem';
 
 const { width } = Dimensions.get('window');
 
-export const WelcomeScreen = () => {
+export const WelcomeScreen = ({ navigation }: any) => {
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Logo Header */}
         <View style={styles.header}>
           <Text style={styles.logoText}>ProChef<Text style={styles.logoAccent}>AI</Text></Text>
@@ -18,20 +19,15 @@ export const WelcomeScreen = () => {
 
         {/* Hero Visual Block */}
         <View style={styles.heroContainer}>
-          <LinearGradient
-            colors={['#1a1a1a', '#0d0d0d']}
-            style={styles.heroBackground}
+          <Image 
+            source={require('../assests/images/loginImage.png')}
+            style={styles.heroImage}
+            resizeMode="cover"
           />
-          <View style={styles.gridOverlay}>
-            {/* Minimalist Grid Pattern */}
-            {[...Array(6)].map((_, i) => (
-              <View key={`v-${i}`} style={[styles.gridLine, { left: (width * 0.8 / 5) * i }]} />
-            ))}
-            {[...Array(6)].map((_, i) => (
-              <View key={`h-${i}`} style={[styles.gridLineH, { top: (200 / 5) * i }]} />
-            ))}
-            <ScanLine color="#426D45" size={48} strokeWidth={1} style={styles.scanIcon} />
-          </View>
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.8)']}
+            style={styles.heroGradient}
+          />
         </View>
 
         {/* Headline */}
@@ -47,12 +43,12 @@ export const WelcomeScreen = () => {
         {/* Features */}
         <View style={styles.featuresList}>
           <FeatureItem
-            icon={<ScanLine color={Colors.white} size={24} />}
+            icon={<Image source={require('../assests/icons/barcode.png')} style={styles.featureIcon} />}
             title="Ingredient Scanning"
             description="Instant recognition of labels and produce."
           />
           <FeatureItem
-            icon={<BrainCircuit color={Colors.white} size={24} />}
+            icon={<Image source={require('../assests/icons/nutrition.png')} style={styles.featureIcon} />}
             title="Nutrition AI"
             description="Personalized macros based on your goals."
           />
@@ -60,14 +56,20 @@ export const WelcomeScreen = () => {
 
         {/* Buttons */}
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.primaryButton}>
+          <TouchableOpacity 
+            style={styles.primaryButton}
+            onPress={() => navigation.navigate('SignUp')}
+          >
             <Text style={styles.primaryButtonText}>Continue</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.secondaryButton}>
+          <TouchableOpacity 
+            style={styles.secondaryButton}
+            onPress={() => navigation.navigate('SignIn')}
+          >
             <Text style={styles.secondaryButtonText}>Sign In</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -77,15 +79,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  content: {
-    flex: 1,
+  scrollContent: {
     paddingHorizontal: 24,
     paddingTop: 20,
-    justifyContent: 'space-between',
+    paddingBottom: 40,
   },
   header: {
     alignItems: 'center',
     marginBottom: 20,
+    marginTop: 10,
   },
   logoText: {
     color: Colors.white,
@@ -101,47 +103,31 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     overflow: 'hidden',
   },
+  featureIcon: {
+    width: 24,
+    height: 24,
+    tintColor: Colors.white,
+  },
   heroContainer: {
-    height: 220,
+    height: 240,
     width: '100%',
     borderRadius: 30,
     overflow: 'hidden',
     position: 'relative',
     borderWidth: 1,
     borderColor: '#333',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  heroBackground: {
+  heroImage: {
     ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
   },
-  gridOverlay: {
-    width: '80%',
-    height: '70%',
-    position: 'relative',
-    borderWidth: 0.5,
-    borderColor: 'rgba(66, 109, 69, 0.3)',
-  },
-  gridLine: {
+  heroGradient: {
     position: 'absolute',
-    top: 0,
     bottom: 0,
-    width: 0.5,
-    backgroundColor: 'rgba(66, 109, 69, 0.2)',
-  },
-  gridLineH: {
-    position: 'absolute',
     left: 0,
     right: 0,
-    height: 0.5,
-    backgroundColor: 'rgba(66, 109, 69, 0.2)',
-  },
-  scanIcon: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: [{ translateX: -24 }, { translateY: -24 }],
-    opacity: 0.8,
+    height: 100,
   },
   headlineContainer: {
     marginTop: 24,

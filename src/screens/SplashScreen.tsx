@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, StyleSheet, Animated, Image } from 'react-native';
 import { Colors } from '../constants/theme';
-import { ChefHat } from 'lucide-react-native';
 
 export const SplashScreen = ({ onFinish }: { onFinish: () => void }) => {
   const fadeAnim = new Animated.Value(0);
@@ -35,10 +34,11 @@ export const SplashScreen = ({ onFinish }: { onFinish: () => void }) => {
   return (
     <View style={styles.container}>
       <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
-        <View style={styles.iconContainer}>
-          <ChefHat color={Colors.white} size={64} fill={Colors.white} />
-        </View>
-        <Text style={styles.logoText}>ProChef<Text style={styles.logoAccent}>AI</Text></Text>
+        <Image 
+          source={require('../assests/icons/logo.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
       </Animated.View>
     </View>
   );
@@ -54,26 +54,8 @@ const styles = StyleSheet.create({
   content: {
     alignItems: 'center',
   },
-  iconContainer: {
-    marginBottom: 20,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 20,
-  },
-  logoText: {
-    color: Colors.white,
-    fontSize: 36,
-    fontFamily: 'Inter-Bold',
-    letterSpacing: -1,
-  },
-  logoAccent: {
-    backgroundColor: Colors.white,
-    color: Colors.background,
-    paddingHorizontal: 6,
-    marginLeft: 4,
-    borderRadius: 8,
-    overflow: 'hidden',
+  logo: {
+    width: 350,
+    height: 100,
   },
 });
