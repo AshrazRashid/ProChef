@@ -1,0 +1,196 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                     String                   @id @default(uuid())
+  email                  String                   @unique
+  passwordHash           String
+  displayName            String?
+  age                    Int?
+  heightCm               Float?
+  weightKg               Float?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  dietProfile            DietProfile?
+  goals                  UserGoal[]
+  pantryItems            PantryItem[]
+  scanSessions           ScanSession[]
+  mealRecommendations    MealRecommendation[]
+  mealPlans              MealPlan[]
+  shoppingLists          ShoppingList[]
+  subscription           Subscription?
+  notificationPreference NotificationPreference?
+}
+
+model DietProfile {
+  id            String  @id @default(uuid())
+  userId        String  @unique
+  calorieTarget Int
+  proteinG      Float
+  carbG         Float
+  fatG          Float
+  dietType      String
+  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserGoal {
+  id             String   @id @default(uuid())
+  userId         String
+  goalType       String
+  targetWeightKg Float?
+  targetDate     DateTime?
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Ingredient {
+  id                 String               @id @default(uuid())
+  name               String               @unique
+  category           String
+  defaultUnit        String
+  pantryItems        PantryItem[]
+  recipeIngredients  RecipeIngredient[]
+  scanDetections     ScanDetection[]
+  shoppingListItems  ShoppingListItem[]
+}
+
+model PantryItem {
+  id           String      @id @default(uuid())
+  userId       String
+  ingredientId String
+  quantity     Float
+  unit         String
+  expiresAt    DateTime?
+  source       String
+  createdAt    DateTime    @default(now())
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ingredient   Ingredient  @relation(fields: [ingredientId], references: [id])
+
+  @@index([userId, expiresAt])
+}
+
+model ScanSession {
+  id          String          @id @default(uuid())
+  userId      String
+  imageUrl    String
+  status      String
+  createdAt   DateTime        @default(now())
+  completedAt DateTime?
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  detections  ScanDetection[]
+}
+
+model ScanDetection {
+  id            String      @id @default(uuid())
+  scanSessionId String
+  ingredientId  String
+  confidence    Float
+  rawLabel      String
+  scanSession   ScanSession @relation(fields: [scanSessionId], references: [id], onDelete: Cascade)
+  ingredient    Ingredient  @relation(fields: [ingredientId], references: [id])
+}
+
+model Recipe {
+  id              String               @id @default(uuid())
+  title           String
+  description     String
+  prepMinutes     Int
+  cookMinutes     Int
+  difficulty      String
+  servings        Int
+  imageUrl        String?
+  ingredients     RecipeIngredient[]
+  recommendations MealRecommendation[]
+  mealPlanSlots   MealPlanSlot[]
+}
+
+model RecipeIngredient {
+  id           String     @id @default(uuid())
+  recipeId     String
+  ingredientId String
+  quantity     Float
+  unit         String
+  optional     Boolean    @default(false)
+  recipe       Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
+}
+
+model MealRecommendation {
+  id         String   @id @default(uuid())
+  userId     String
+  recipeId   String
+  score      Float
+  reasonJson Json
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipe     Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+}
+
+model MealPlan {
+  id            String       @id @default(uuid())
+  userId        String
+  weekStartDate DateTime
+  status        String
+  createdAt     DateTime     @default(now())
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slots         MealPlanSlot[]
+  shoppingLists ShoppingList[]
+}
+
+model MealPlanSlot {
+  id         String   @id @default(uuid())
+  mealPlanId String
+  date       DateTime
+  slotType   String
+  recipeId   String?
+  servings   Int?
+  mealPlan   MealPlan @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  recipe     Recipe?  @relation(fields: [recipeId], references: [id])
+}
+
+model ShoppingList {
+  id         String             @id @default(uuid())
+  userId     String
+  mealPlanId String?
+  status     String             @default("active")
+  createdAt  DateTime           @default(now())
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mealPlan   MealPlan?          @relation(fields: [mealPlanId], references: [id])
+  items      ShoppingListItem[]
+}
+
+model ShoppingListItem {
+  id             String       @id @default(uuid())
+  shoppingListId String
+  ingredientId   String
+  quantity       Float
+  unit           String
+  checked        Boolean      @default(false)
+  shoppingList   ShoppingList @relation(fields: [shoppingListId], references: [id], onDelete: Cascade)
+  ingredient     Ingredient   @relation(fields: [ingredientId], references: [id])
+}
+
+model Subscription {
+  id                   String   @id @default(uuid())
+  userId               String   @unique
+  stripeCustomerId     String   @unique
+  stripeSubscriptionId String?  @unique
+  planCode             String
+  status               String
+  currentPeriodEnd     DateTime?
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model NotificationPreference {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  expiryPushEnabled Boolean  @default(true)
+  mealPushEnabled   Boolean  @default(true)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
