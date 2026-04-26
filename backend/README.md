@@ -13,6 +13,13 @@ Modular monolith backend for the ProChef mobile app.
 - Subscriptions/Billing
 - Notifications
 
+## Phase 7: Hardening
+
+- **Rate limits:** Redis-backed global + stricter `/auth` limits (see [`docs/hardening-phase7.md`](./docs/hardening-phase7.md)).
+- **Observability:** JSON request logs (pino), `X-Request-Id`, `GET /health/ready`, graceful `SIGTERM`/`SIGINT` shutdown.
+- **Load tests:** `npm run loadtest` (autocannon; API must be running). Optional: `npm run loadtest:k6` with [k6](https://k6.io/) installed.
+- **Backups / drills:** [`docs/backup-restore.md`](./docs/backup-restore.md) and `scripts/db-backup.sh` / `scripts/db-restore.sh`.
+
 ## Local Setup
 
 1. Copy `.env.example` to `.env` and update values.

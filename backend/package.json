@@ -10,7 +10,9 @@
     "worker": "tsx src/jobs/worker.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "loadtest": "sh -c 'autocannon -c 20 -d 15 --connectionRetry false \"${LOADTEST_URL:-http://127.0.0.1:4000}/health\"'",
+    "loadtest:k6": "k6 run load/k6-smoke.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1032.0",
@@ -21,9 +23,12 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
+    "express-rate-limit": "^8.4.1",
     "ioredis": "^5.4.1",
     "jsonwebtoken": "^9.0.2",
-    "morgan": "^1.10.0",
+    "pino": "^10.3.1",
+    "pino-http": "^11.0.0",
+    "rate-limit-redis": "^4.3.1",
     "stripe": "^22.0.2",
     "zod": "^3.23.8"
   },
@@ -32,8 +37,8 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.6",
-    "@types/morgan": "^1.9.9",
     "@types/node": "^22.15.2",
+    "autocannon": "^8.0.0",
     "prisma": "^6.7.0",
     "tsx": "^4.19.3",
     "typescript": "^5.8.3"

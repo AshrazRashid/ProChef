@@ -23,6 +23,18 @@ Single reference document for all currently implemented backend endpoints.
 }
 ```
 
+### `GET /health/ready`
+- Auth: No
+- Purpose: readiness (PostgreSQL + Redis). Use behind load balancers; not for cheap liveness-only pings.
+- Response `200` when dependencies are reachable:
+```json
+{
+  "status": "ready",
+  "checks": { "db": true, "redis": true }
+}
+```
+- Response `503` if Postgres or Redis fails: `{ "status": "not_ready", "checks": { ... } }`
+
 ---
 
 ## Auth (`/auth`)

@@ -5,6 +5,9 @@ dotenv.config();
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
+  /** Number of reverse proxies in front of this app (sets Express trust proxy). Use 0 locally, 1 behind a single load balancer. */
+  TRUST_PROXY: z.coerce.number().int().min(0).max(32).default(0),
   PORT: z.coerce.number().default(4000),
   DATABASE_URL: z.string().min(1),
   REDIS_URL: z.string().min(1),

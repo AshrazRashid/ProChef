@@ -3,6 +3,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { createTokenPair } from "../../common/auth.js";
 import { prisma } from "../../common/db.js";
+import { authLimiter } from "../../common/rateLimit.js";
 
 const signupSchema = z.object({
   email: z.string().email(),
@@ -12,6 +13,8 @@ const signupSchema = z.object({
 const loginSchema = signupSchema;
 
 export const authRouter = Router();
+
+authRouter.use(authLimiter);
 
 authRouter.post("/signup", async (req, res) => {
   const parse = signupSchema.safeParse(req.body);

@@ -30,8 +30,14 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# local env files (keep .env.example tracked)
+.env
+.env.*
+!.env.example
 .env*.local
+
+# local DB dumps (Phase 7 backup scripts)
+backend/backups/
 
 # typescript
 *.tsbuildinfo
