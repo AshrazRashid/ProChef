@@ -1,5 +1,5 @@
 import { SafeAreaView } from "react-native-safe-area-context";
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -8,30 +8,93 @@ import {
   ScrollView, 
   Image, 
   Dimensions,
-  ImageBackground
+  ImageBackground,
+  ActivityIndicator,
+  Alert
 } from 'react-native';
+import { useRoute } from '@react-navigation/native';
 import { ChevronLeft, Clock, Flame, Star, Users, CheckCircle2 } from 'lucide-react-native';
 import { Colors } from '../constants/theme';
+import { apiJson } from '../api/client';
 const { width } = Dimensions.get('window');
 
+type RecipeApi = {
+  id: string;
+  title: string;
+  description: string;
+  prepMinutes: number;
+  cookMinutes: number;
+  servings: number;
+  caloriesPerServing: number | null;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  ingredients: { quantity: number; unit: string; optional: boolean; ingredient: { name: string } }[];
+};
+
 export const RecipeDetailsScreen = ({ navigation }: any) => {
-  const nutrition = [
+  const route = useRoute<any>();
+  const recipeId: string | undefined = route.params?.recipeId;
+  const [recipe, setRecipe] = useState<RecipeApi | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [logging, setLogging] = useState(false);
+
+  const load = useCallback(async () => {
+    if (!recipeId) {
+      return;
+    }
+    setLoading(true);
+    try {
+      const r = await apiJson<RecipeApi>(`/recipes/${recipeId}`, { method: "GET" });
+      setRecipe(r);
+    } catch {
+      setRecipe(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [recipeId]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const nutrition = recipe
+    ? [
+        { label: 'PROTEIN', value: recipe.proteinG != null ? `${Math.round(recipe.proteinG)}g` : '—', color: '#E8F5E9', barColor: '#426D45' },
+        { label: 'CARBS', value: recipe.carbsG != null ? `${Math.round(recipe.carbsG)}g` : '—', color: '#FFF3E0', barColor: '#FF9800' },
+        { label: 'FATS', value: recipe.fatG != null ? `${Math.round(recipe.fatG)}g` : '—', color: '#E3F2FD', barColor: '#2196F3' },
+        { label: 'CALORIES', value: recipe.caloriesPerServing != null ? `${recipe.caloriesPerServing}` : '—', color: '#F3E5F5', barColor: '#9C27B0' },
+      ]
+    : [
     { label: 'PROTEIN', value: '32g', color: '#E8F5E9', barColor: '#426D45' },
     { label: 'CARBS', value: '45g', color: '#FFF3E0', barColor: '#FF9800' },
     { label: 'FATS', value: '22g', color: '#E3F2FD', barColor: '#2196F3' },
     { label: 'FIBER', value: '8g', color: '#F3E5F5', barColor: '#9C27B0' },
   ];
-  const ingredients = [
+
+  const ingredients =
+    recipe?.ingredients?.map((ri) => ({
+      name: ri.ingredient.name,
+      amount: `${ri.quantity} ${ri.unit}`,
+      icon: require('../assets/icons/organic.png')
+    })) ?? [
     { name: 'Fresh Salmon Fillets', amount: '2 pieces', icon: require('../assets/icons/salmonFillets.png') },
     { name: 'Organic Quinoa', amount: '1 cup', icon: require('../assets/icons/organic.png') },
     { name: 'Cucumber & Cherry Tomatoes', amount: '2 cups', icon: require('../assets/icons/herb.png') },
     { name: 'Lemon Herb Tahini', amount: '3 tbsp', icon: require('../assets/icons/eating.png') },
   ];
-  const preparation = [
+
+  const preparation = recipe
+    ? [{ title: 'Recipe', desc: recipe.description || 'Follow packaging for best results.' }]
+    : [
     { title: 'Prepare Quinoa Base', desc: 'Rinse the quinoa and cook in water or vegetable broth for 15 minutes until fluffy. Season with a pinch of sea salt.' },
     { title: 'Sear the Salmon', desc: 'Season salmon with lemon zest and pepper. Sear in a hot skillet for 4 minutes per side until the skin is crispy and the interior is tender.' },
     { title: 'Assemble the Bowl', desc: 'Divide quinoa into bowls. Top with sliced cucumbers, tomatoes, and the salmon fillet. Drizzle generously with tahini dressing.' },
   ];
+
+  const title = recipe?.title ?? 'Recipe';
+  const totalMin = recipe ? recipe.prepMinutes + recipe.cookMinutes : 25;
+  const cals = recipe?.caloriesPerServing ?? 540;
 
   return (
     <View style={styles.container}>
@@ -50,20 +113,25 @@ export const RecipeDetailsScreen = ({ navigation }: any) => {
              <View style={styles.typeBadge}>
                <Text style={styles.typeText}>MEDITERRANEAN</Text>
              </View>
-             <Text style={styles.recipeTitle}>Mediterranean Salmon Bowl</Text>
+             <Text style={styles.recipeTitle}>{title}</Text>
           </View>
         </ImageBackground>
         <View style={styles.content}>
+           {loading ? (
+             <View style={{ paddingVertical: 24, alignItems: 'center' }}>
+               <ActivityIndicator color={Colors.primary} />
+             </View>
+           ) : null}
            {/* Quick Stats Row */}
            <View style={styles.statsRow}>
               <View style={styles.statBox}>
                  <Clock color={Colors.primary} size={20} />
-                 <Text style={styles.statValue}>25m</Text>
+                 <Text style={styles.statValue}>{totalMin}m</Text>
                  <Text style={styles.statLabel}>TOTAL TIME</Text>
               </View>
               <View style={styles.statBox}>
                  <Flame color={Colors.primary} size={20} />
-                 <Text style={styles.statValue}>540</Text>
+                 <Text style={styles.statValue}>{cals}</Text>
                  <Text style={styles.statLabel}>CALORIES</Text>
               </View>
               <View style={styles.statBox}>
@@ -88,7 +156,7 @@ export const RecipeDetailsScreen = ({ navigation }: any) => {
            {/* Ingredients */}
            <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Ingredients</Text>
-              <Text style={styles.servingText}>2 Servings</Text>
+              <Text style={styles.servingText}>{recipe?.servings ?? 2} Servings</Text>
            </View>
            {ingredients.map((item, index) => (
              <View key={index} style={styles.ingredientItem}>
@@ -118,6 +186,38 @@ export const RecipeDetailsScreen = ({ navigation }: any) => {
       </ScrollView>
       {/* Footer Buttons */}
       <SafeAreaView style={styles.footer}>
+         <TouchableOpacity
+           style={[styles.variationsButton, { marginBottom: 10 }]}
+           disabled={!recipe || logging}
+           onPress={async () => {
+             if (!recipe) {
+               return;
+             }
+             setLogging(true);
+             try {
+               await apiJson("/tracking/meal-logs", {
+                 method: "POST",
+                 body: JSON.stringify({
+                   recipeId: recipe.id,
+                   label: recipe.title,
+                   calories: recipe.caloriesPerServing ?? 0,
+                   proteinG: recipe.proteinG ?? 0,
+                   carbG: recipe.carbsG ?? 0,
+                   fatG: recipe.fatG ?? 0
+                 })
+               });
+               Alert.alert("Logged", "Meal added to today’s diary.");
+             } catch (e: unknown) {
+               const msg =
+                 e && typeof e === "object" && "message" in e ? String((e as { message: string }).message) : "Could not log";
+               Alert.alert("Meal log", msg);
+             } finally {
+               setLogging(false);
+             }
+           }}
+         >
+            <Text style={styles.variationsText}>{logging ? "Saving…" : "Log to today"}</Text>
+         </TouchableOpacity>
          <TouchableOpacity 
            style={styles.variationsButton}
            onPress={() => navigation.navigate('CustomMeal')}

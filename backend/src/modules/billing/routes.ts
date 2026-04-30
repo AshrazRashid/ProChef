@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { z } from "zod";
 import type Stripe from "stripe";
 import { prisma } from "../../common/db.js";
 import { AuthedRequest, requireAuth } from "../../common/middleware.js";
@@ -7,13 +8,43 @@ import { env } from "../../common/config.js";
 export const billingRouter = Router();
 const stripe = env.STRIPE_SECRET_KEY ? new (await import("stripe")).default(env.STRIPE_SECRET_KEY) : null;
 
+export async function readEntitlements(userId: string) {
+  const subscription = await prisma.subscription.findUnique({
+    where: { userId }
+  });
+  if (!subscription) {
+    return {
+      hasPro: false,
+      planCode: null as string | null,
+      status: "none",
+      currentPeriodEnd: null as Date | null
+    };
+  }
+
+  const activeStatuses = new Set(["active", "trialing"]);
+  const hasPro =
+    activeStatuses.has(subscription.status) &&
+    (!subscription.currentPeriodEnd || subscription.currentPeriodEnd.getTime() > Date.now());
+
+  return {
+    hasPro,
+    planCode: subscription.planCode,
+    status: subscription.status,
+    currentPeriodEnd: subscription.currentPeriodEnd
+  };
+}
+
 billingRouter.get("/plans", (_req, res) => {
   res.json({
     plans: [
-      { code: "monthly_pro", amount: 999, currency: "usd", interval: "month" },
-      { code: "yearly_pro", amount: 7999, currency: "usd", interval: "year" }
+      { code: "monthly_pro", amountCents: 799, currency: "usd", interval: "month" },
+      { code: "yearly_pro", amountCents: 5499, currency: "usd", interval: "year" }
     ]
   });
+});
+
+const checkoutBodySchema = z.object({
+  plan: z.enum(["monthly", "yearly"])
 });
 
 billingRouter.post("/checkout-session", requireAuth, async (req: AuthedRequest, res) => {
@@ -21,6 +52,26 @@ billingRouter.post("/checkout-session", requireAuth, async (req: AuthedRequest, 
     res.status(503).json({ message: "Stripe is not configured" });
     return;
   }
+
+  const parsed = checkoutBodySchema.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    res.status(400).json({ message: "Invalid payload", errors: parsed.error.flatten() });
+    return;
+  }
+
+  const priceId =
+    parsed.data.plan === "yearly" ? env.STRIPE_PRICE_ID_YEARLY : env.STRIPE_PRICE_ID_MONTHLY;
+  if (!priceId) {
+    res.status(503).json({
+      message:
+        "Stripe price IDs are not configured. Set STRIPE_PRICE_ID_MONTHLY and STRIPE_PRICE_ID_YEARLY in the environment."
+    });
+    return;
+  }
+
+  const successUrl =
+    env.CHECKOUT_SUCCESS_URL ?? "https://example.com/billing/success?session_id={CHECKOUT_SESSION_ID}";
+  const cancelUrl = env.CHECKOUT_CANCEL_URL ?? "https://example.com/billing/cancel";
 
   const userId = req.user!.id;
   const userEmail = req.user!.email;
@@ -48,58 +99,28 @@ billingRouter.post("/checkout-session", requireAuth, async (req: AuthedRequest, 
     });
   }
 
-  // Price IDs should be configured in Stripe dashboard and passed here by plan code mapping.
-  // Placeholder checkout session keeps backend flow wired while prices are finalized.
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     customer: customerId,
-    success_url: "https://example.com/billing/success?session_id={CHECKOUT_SESSION_ID}",
-    cancel_url: "https://example.com/billing/cancel",
-    line_items: [
-      {
-        price_data: {
-          currency: "usd",
-          recurring: { interval: "month" },
-          product_data: { name: "ProChef Pro Monthly" },
-          unit_amount: 999
-        },
-        quantity: 1
-      }
-    ],
-    metadata: { userId }
+    line_items: [{ price: priceId, quantity: 1 }],
+    success_url: successUrl,
+    cancel_url: cancelUrl,
+    client_reference_id: userId,
+    metadata: { userId },
+    subscription_data: {
+      metadata: { userId }
+    }
   });
 
   res.json({
     checkoutUrl: session.url,
+    sessionId: session.id,
     userId
   });
 });
 
 billingRouter.get("/entitlements", requireAuth, async (req: AuthedRequest, res) => {
-  const subscription = await prisma.subscription.findUnique({
-    where: { userId: req.user!.id }
-  });
-  if (!subscription) {
-    res.json({
-      hasPro: false,
-      planCode: null,
-      status: "none",
-      currentPeriodEnd: null
-    });
-    return;
-  }
-
-  const activeStatuses = new Set(["active", "trialing"]);
-  const hasPro =
-    activeStatuses.has(subscription.status) &&
-    (!subscription.currentPeriodEnd || subscription.currentPeriodEnd.getTime() > Date.now());
-
-  res.json({
-    hasPro,
-    planCode: subscription.planCode,
-    status: subscription.status,
-    currentPeriodEnd: subscription.currentPeriodEnd
-  });
+  res.json(await readEntitlements(req.user!.id));
 });
 
 function toIsoDate(value: number | null | undefined): Date | null {
@@ -119,7 +140,7 @@ function getSubscriptionPeriodEnd(subscription: Stripe.Subscription): number | n
 }
 
 async function syncSubscriptionFromStripe(stripeSubscription: Stripe.Subscription) {
-  const userId = stripeSubscription.metadata.userId;
+  const userId = stripeSubscription.metadata?.userId;
   if (!userId) {
     return;
   }
@@ -169,6 +190,7 @@ export async function handleStripeWebhook(rawBody: Buffer, signature: string | u
       const session = event.data.object as Stripe.Checkout.Session;
       const userId = session.metadata?.userId;
       const stripeCustomerId = typeof session.customer === "string" ? session.customer : session.customer?.id;
+      const subRef = session.subscription;
 
       if (userId && stripeCustomerId) {
         await prisma.subscription.upsert({
@@ -176,18 +198,22 @@ export async function handleStripeWebhook(rawBody: Buffer, signature: string | u
           create: {
             userId,
             stripeCustomerId,
-            stripeSubscriptionId:
-              typeof session.subscription === "string" ? session.subscription : session.subscription?.id,
-            planCode: "monthly_pro",
+            stripeSubscriptionId: typeof subRef === "string" ? subRef : subRef?.id ?? null,
+            planCode: "unassigned",
             status: "incomplete",
             currentPeriodEnd: null
           },
           update: {
             stripeCustomerId,
-            stripeSubscriptionId:
-              typeof session.subscription === "string" ? session.subscription : session.subscription?.id
+            stripeSubscriptionId: typeof subRef === "string" ? subRef : subRef?.id ?? undefined
           }
         });
+      }
+
+      const subId = typeof subRef === "string" ? subRef : subRef?.id;
+      if (subId) {
+        const sub = await stripe.subscriptions.retrieve(subId);
+        await syncSubscriptionFromStripe(sub);
       }
       break;
     }

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../../common/db.js";
-import { AuthedRequest, requireAuth } from "../../common/middleware.js";
+import { AuthedRequest, requireAuth, requireProEntitlement } from "../../common/middleware.js";
 
 const pantryItemSchema = z.object({
   ingredientId: z.string().uuid(),
@@ -11,7 +11,7 @@ const pantryItemSchema = z.object({
 });
 
 export const pantryRouter = Router();
-pantryRouter.use(requireAuth);
+pantryRouter.use(requireAuth, requireProEntitlement);
 
 pantryRouter.get("/items", async (req: AuthedRequest, res) => {
   const items = await prisma.pantryItem.findMany({

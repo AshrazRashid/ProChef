@@ -34,6 +34,11 @@ export function buildScanObjectKey(userId: string, contentType: string) {
   return `scans/${userId}/${scanId}.${getExtension(contentType)}`;
 }
 
+export function buildProgressPhotoObjectKey(userId: string, contentType: string) {
+  const id = randomUUID();
+  return `progress/${userId}/${id}.${getExtension(contentType)}`;
+}
+
 export async function createScanUploadUrl(params: { objectKey: string; contentType: string }) {
   const command = new PutObjectCommand({
     Bucket: env.S3_BUCKET,
@@ -43,6 +48,10 @@ export async function createScanUploadUrl(params: { objectKey: string; contentTy
 
   const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 900 });
   return { uploadUrl, expiresInSeconds: 900 };
+}
+
+export async function createProgressPhotoUploadUrl(params: { objectKey: string; contentType: string }) {
+  return createScanUploadUrl(params);
 }
 
 export async function objectExists(objectKey: string) {

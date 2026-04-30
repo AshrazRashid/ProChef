@@ -12,11 +12,13 @@ import {
 import { GestureHandlerRootView, TouchableOpacity } from 'react-native-gesture-handler';
 import { ChevronLeft, Edit3, Target, Calculator, Sliders, Calendar, Utensils, ChefHat, Bell, Zap, Key, FileText, Shield, LogOut } from 'lucide-react-native';
 import { Colors } from '../constants/theme';
-import { useNavigation } from '@react-navigation/native';
+import { CommonActions, useNavigation } from '@react-navigation/native';
+import { useAuth } from '../context/AuthContext';
 const { width } = Dimensions.get('window');
 
 export const ProfileScreen = () => {
   const navigation = useNavigation<any>();
+  const { signOut } = useAuth();
   const [expiryAlerts, setExpiryAlerts] = useState(true);
   const [mealSuggestions, setMealSuggestions] = useState(true);
 
@@ -157,7 +159,13 @@ export const ProfileScreen = () => {
              <Text style={styles.listItemText}>Privacy & Security</Text>
              <ChevronLeft size={20} color="#CCC" style={{ transform: [{ rotate: '180deg'}] }} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.logoutBtn} onPress={() => navigation.navigate('Welcome')}>
+          <TouchableOpacity
+            style={styles.logoutBtn}
+            onPress={async () => {
+              await signOut();
+              navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: "Welcome" }] }));
+            }}
+          >
              <LogOut size={20} color="#E57373" />
              <Text style={styles.logoutText}>Log Out</Text>
           </TouchableOpacity>

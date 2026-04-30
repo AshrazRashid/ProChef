@@ -1,5 +1,5 @@
 import { SafeAreaView } from "react-native-safe-area-context";
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -12,13 +12,15 @@ import {
   Animated
 } from 'react-native';
 import { Colors } from '../constants/theme';
+import { useOnboarding } from '../context/OnboardingContext';
 const { width } = Dimensions.get('window');
 
 export const AboutYourselfScreen = ({ navigation }: any) => {
-  const [gender, setGender] = useState('female');
-  const [age, setAge] = useState(28);
-  const [weight, setWeight] = useState(72.5);
-  const [height, setHeight] = useState(178);
+  const { draft, setAge, setCurrentWeightKg, setHeightCm, setSex } = useOnboarding();
+  const [gender, setGender] = useState<'female' | 'male'>(draft.sex === 'male' ? 'male' : 'female');
+  const [age, setAgeLocal] = useState(draft.age);
+  const [weight, setWeight] = useState(draft.currentWeightKg);
+  const [height, setHeight] = useState(draft.heightCm);
   // Height Slider Animation/Logic
   const sliderWidth = width - 108; // Padding and margins
   const heightAnim = useRef(new Animated.Value((178 - 140) / (220 - 140) * sliderWidth)).current;
@@ -55,7 +57,7 @@ export const AboutYourselfScreen = ({ navigation }: any) => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>WEIGHT</Text>
-            <Text style={styles.sectionValue}>{weight.toFixed(1)} <Text style={styles.sectionUnit}>lb</Text></Text>
+            <Text style={styles.sectionValue}>{weight.toFixed(1)} <Text style={styles.sectionUnit}>kg</Text></Text>
           </View>
           <View style={styles.weightPickerContainer}>
             <ScrollView 
@@ -64,8 +66,8 @@ export const AboutYourselfScreen = ({ navigation }: any) => {
               snapToInterval={10}
               onScroll={(e) => {
                 const offset = e.nativeEvent.contentOffset.x;
-                const newWeight = 40 + (offset / 10); // Start from 40lb
-                setWeight(newWeight);
+                const newWeight = 40 + offset / 10;
+                setWeight(Math.min(200, Math.max(35, newWeight)));
               }}
               scrollEventThrottle={16}
             >
@@ -110,14 +112,14 @@ export const AboutYourselfScreen = ({ navigation }: any) => {
             <View style={styles.counterRow}>
               <TouchableOpacity 
                 style={styles.counterButton}
-                onPress={() => setAge(Math.max(1, age - 1))}
+                onPress={() => setAgeLocal(Math.max(14, age - 1))}
               >
                 <Text style={styles.counterButtonText}>−</Text>
               </TouchableOpacity>
               <Text style={styles.ageValue}>{age}</Text>
               <TouchableOpacity 
                 style={styles.counterButton}
-                onPress={() => setAge(age + 1)}
+                onPress={() => setAgeLocal(Math.min(100, age + 1))}
               >
                 <Text style={styles.counterButtonText}>+</Text>
               </TouchableOpacity>
@@ -128,7 +130,7 @@ export const AboutYourselfScreen = ({ navigation }: any) => {
             <Text style={styles.smallSectionTitle}>GENDER</Text>
             <TouchableOpacity 
               style={styles.genderOption}
-              onPress={() => setGender('female')}
+              onPress={() => setGender("female")}
             >
               <View style={styles.genderIconContainer}>
                 <Image 
@@ -141,7 +143,7 @@ export const AboutYourselfScreen = ({ navigation }: any) => {
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.genderOption}
-              onPress={() => setGender('male')}
+              onPress={() => setGender("male")}
             >
               <View style={styles.genderIconContainer}>
                 <Image 
@@ -156,7 +158,13 @@ export const AboutYourselfScreen = ({ navigation }: any) => {
         </View>
         <TouchableOpacity 
           style={styles.primaryButton}
-          onPress={() => navigation.navigate('DietCustomization')}
+          onPress={() => {
+            setAge(age);
+            setCurrentWeightKg(weight);
+            setHeightCm(height);
+            setSex(gender === "male" ? "male" : "female");
+            navigation.navigate("DietCustomization");
+          }}
         >
           <Text style={styles.primaryButtonText}>Save</Text>
         </TouchableOpacity>

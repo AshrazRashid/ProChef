@@ -21,7 +21,16 @@ const envSchema = z.object({
   S3_ACCESS_KEY_ID: z.string().optional(),
   S3_SECRET_ACCESS_KEY: z.string().optional(),
   STRIPE_SECRET_KEY: z.string().optional(),
-  STRIPE_WEBHOOK_SECRET: z.string().optional()
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  /** Stripe Price IDs from Dashboard (recurring monthly / yearly). */
+  STRIPE_PRICE_ID_MONTHLY: z.string().optional(),
+  STRIPE_PRICE_ID_YEARLY: z.string().optional(),
+  /**
+   * Mobile return URLs for Checkout. Use your app scheme, e.g.
+   * prochef://billing/success?session_id={CHECKOUT_SESSION_ID}
+   */
+  CHECKOUT_SUCCESS_URL: z.string().min(1).optional(),
+  CHECKOUT_CANCEL_URL: z.string().min(1).optional()
 });
 
 export const env = envSchema.parse(process.env);

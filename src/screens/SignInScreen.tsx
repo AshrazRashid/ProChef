@@ -7,14 +7,20 @@ import {
   TextInput, 
   TouchableOpacity, 
   Image,
-  Dimensions
+  Dimensions,
+  ActivityIndicator,
+  Alert
 } from 'react-native';
+import { CommonActions } from '@react-navigation/native';
 import { Colors } from '../constants/theme';
+import { useAuth } from '../context/AuthContext';
 const { width } = Dimensions.get('window');
 
 export const SignInScreen = ({ navigation }: any) => {
+  const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -49,9 +55,26 @@ export const SignInScreen = ({ navigation }: any) => {
         {/* Continue Button */}
         <TouchableOpacity 
           style={styles.primaryButton}
-          onPress={() => navigation.navigate('Verification')}
+          disabled={busy}
+          onPress={async () => {
+            setBusy(true);
+            try {
+              const next = await signIn(email.trim(), password);
+              navigation.dispatch(
+                CommonActions.reset({
+                  index: 0,
+                  routes: [{ name: next }]
+                })
+              );
+            } catch (e: unknown) {
+              const msg = e instanceof Error ? e.message : "Sign in failed";
+              Alert.alert("Sign in", msg);
+            } finally {
+              setBusy(false);
+            }
+          }}
         >
-          <Text style={styles.primaryButtonText}>Continue</Text>
+          {busy ? <ActivityIndicator color={Colors.white} /> : <Text style={styles.primaryButtonText}>Continue</Text>}
         </TouchableOpacity>
         {/* Forgot Password */}
         <TouchableOpacity 

@@ -1,5 +1,5 @@
 import { SafeAreaView } from "react-native-safe-area-context";
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -9,22 +9,96 @@ import {
   Image,
   Dimensions
 } from 'react-native';
-import { LayoutDashboard, Calendar, Utensils, ChefHat, Scan, ChevronRight } from 'lucide-react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { LayoutDashboard, Utensils, Scan, ChevronRight } from 'lucide-react-native';
 import { Colors } from '../constants/theme';
+import { apiJson } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 const { width } = Dimensions.get('window');
 
+type DashboardSummary = {
+  intakeToday: { calories: number; proteinG: number; carbG: number; fatG: number; mealCount: number };
+  targets: { calorieTarget: number; proteinG: number; carbG: number; fatG: number } | null;
+  weight: { weightKg: number; loggedAt: string } | null;
+  recommendations: { top: { title: string; recipeId: string; score: number }[] };
+};
+
+function pct(cur: number, tgt: number): number {
+  if (tgt <= 0) {
+    return 0;
+  }
+  return Math.min(100, Math.round((cur / tgt) * 100));
+}
+
 export const DashboardScreen = ({ navigation }: any) => {
-  const nutrients = [
-    { label: 'PROTEIN', current: '140g', target: '180g', percent: 77, color: '#426D45' },
-    { label: 'CARBS', current: '220g', target: '250g', percent: 88, color: '#FFB74D' },
-    { label: 'FATS', current: '60g', target: '70g', percent: 85, color: '#4FC3F7' },
-  ];
-  const recentWins = [
-    { name: 'Mediterranean Salmon Bowl', time: '25m', cals: '540 kcal', image: require('../assets/images/MediterraneanSalmonBowl.png') },
-    { name: 'Mediterranean Salmon Bowl', time: '25m', cals: '540 kcal', image: require('../assets/images/MediterraneanSalmonBowl.png') },
-    { name: 'Spinach & Feta Omelette', time: '12m', cals: '320 kcal', image: require('../assets/images/SpinachOmelette.png') },
-    { name: 'Quinoa Salad', time: '15m', cals: '410 kcal', image: require('../assets/images/QuinoaSalad.png') },
-  ];
+  const { hasPro } = useAuth();
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+
+  const load = useCallback(async () => {
+    if (!hasPro) {
+      navigation.replace("PremiumAccess");
+      return;
+    }
+    try {
+      const s = await apiJson<DashboardSummary>("/dashboard/summary", { method: "GET" });
+      setSummary(s);
+    } catch (e: unknown) {
+      const status = e && typeof e === "object" && "status" in e ? (e as { status: number }).status : 0;
+      if (status === 402) {
+        navigation.replace("PremiumAccess");
+      }
+    }
+  }, [hasPro, navigation]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load])
+  );
+
+  const intake = summary?.intakeToday;
+  const targets = summary?.targets;
+  const nutrients = targets && intake
+    ? [
+        {
+          label: "PROTEIN",
+          current: `${Math.round(intake.proteinG)}g`,
+          target: `${Math.round(targets.proteinG)}g`,
+          percent: pct(intake.proteinG, targets.proteinG),
+          color: "#426D45"
+        },
+        {
+          label: "CARBS",
+          current: `${Math.round(intake.carbG)}g`,
+          target: `${Math.round(targets.carbG)}g`,
+          percent: pct(intake.carbG, targets.carbG),
+          color: "#FFB74D"
+        },
+        {
+          label: "FATS",
+          current: `${Math.round(intake.fatG)}g`,
+          target: `${Math.round(targets.fatG)}g`,
+          percent: pct(intake.fatG, targets.fatG),
+          color: "#4FC3F7"
+        }
+      ]
+    : [
+        { label: "PROTEIN", current: "—", target: "—", percent: 0, color: "#426D45" },
+        { label: "CARBS", current: "—", target: "—", percent: 0, color: "#FFB74D" },
+        { label: "FATS", current: "—", target: "—", percent: 0, color: "#4FC3F7" }
+      ];
+
+  const calConsumed = intake?.calories ?? 0;
+  const calGoal = targets?.calorieTarget ?? 0;
+  const calLeft = Math.max(0, calGoal - calConsumed);
+
+  const recentWins =
+    summary?.recommendations?.top?.map((t) => ({
+      name: t.title,
+      time: "—",
+      cals: `${Math.round(t.score * 100)}% match`,
+      image: require("../assets/images/MediterraneanSalmonBowl.png")
+    })) ?? [];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -42,13 +116,13 @@ export const DashboardScreen = ({ navigation }: any) => {
         <View style={styles.donutCard}>
            <View style={styles.donutOuter}>
               <View style={styles.donutInner}>
-                 <Text style={styles.donutValue}>1840</Text>
-                 <Text style={styles.donutLabel}>kcal Consumed</Text>
+                 <Text style={styles.donutValue}>{calConsumed}</Text>
+                 <Text style={styles.donutLabel}>kcal consumed</Text>
               </View>
            </View>
            <View style={styles.goalRow}>
-              <Text style={styles.goalText}>Goal: <Text style={[styles.goalText, {color: '#426D45'}]}>2,200 kcal</Text></Text>
-              <Text style={styles.goalText}>Left: <Text style={[styles.goalText, {color: '#FFB74D'}]}>360 kcal</Text></Text>
+              <Text style={styles.goalText}>Goal: <Text style={[styles.goalText, {color: '#426D45'}]}>{calGoal || "—"} kcal</Text></Text>
+              <Text style={styles.goalText}>Left: <Text style={[styles.goalText, {color: '#FFB74D'}]}>{calGoal ? calLeft : "—"} kcal</Text></Text>
            </View>
         </View>
         {/* Nutrient Precision */}
@@ -78,8 +152,11 @@ export const DashboardScreen = ({ navigation }: any) => {
                  <Text style={styles.weightSub}>Last 7 Days</Text>
               </View>
               <View style={{ alignItems: 'flex-end' }}>
-                 <Text style={styles.currentWeight}>77.2 <Text style={styles.weightUnit}>KG</Text></Text>
-                 <Text style={styles.weightChange}>📉 -0.8KG</Text>
+                 <Text style={styles.currentWeight}>
+                   {summary?.weight ? summary.weight.weightKg.toFixed(1) : "—"}{" "}
+                   <Text style={styles.weightUnit}>KG</Text>
+                 </Text>
+                 <Text style={styles.weightChange}>Latest log</Text>
               </View>
            </View>
            {/* Simple Line Representation */}
@@ -100,7 +177,7 @@ export const DashboardScreen = ({ navigation }: any) => {
            <Text style={styles.sectionTitle}>Recent Kitchen Wins</Text>
            <TouchableOpacity><Text style={styles.viewJournal}>View Journal</Text></TouchableOpacity>
         </View>
-        {recentWins.map((win, idx) => (
+        {(recentWins.length ? recentWins : [{ name: "No recommendations yet", time: "", cals: "Scan your pantry", image: require("../assets/images/QuinoaSalad.png") }]).map((win, idx) => (
            <View key={idx} style={styles.winCard}>
               <View style={styles.winImageContainer}>
                  <Image source={win.image} style={styles.winImage} />

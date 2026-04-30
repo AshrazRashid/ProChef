@@ -7,14 +7,49 @@ import {
   TouchableOpacity, 
   Image, 
   ScrollView,
-  Dimensions
+  Dimensions,
+  ActivityIndicator,
+  Alert
 } from 'react-native';
-import { ChevronLeft, AlertCircle } from 'lucide-react-native';
+import { ChevronLeft } from 'lucide-react-native';
 import { Colors } from '../constants/theme';
+import { useOnboarding } from '../context/OnboardingContext';
+import { useAuth } from '../context/AuthContext';
+import { apiJson } from '../api/client';
 const { width } = Dimensions.get('window');
 
 export const DietCustomizationScreen = ({ navigation }: any) => {
+  const { draft } = useOnboarding();
+  const { refreshUser } = useAuth();
+  const [submitting, setSubmitting] = useState(false);
   const [selectedGoals, setSelectedGoals] = useState<string[]>(['high_protein']);
+
+  const commitPlan = async () => {
+    const dietType = selectedGoals[0] ?? "balanced";
+    setSubmitting(true);
+    try {
+      await apiJson("/me/plan-commit", {
+        method: "POST",
+        body: JSON.stringify({
+          age: draft.age,
+          heightCm: draft.heightCm,
+          weightKg: draft.currentWeightKg,
+          sex: draft.sex,
+          goalType: draft.goalType,
+          targetWeightKg: draft.targetWeightKg,
+          targetWeeks: draft.targetWeeks,
+          dietType
+        })
+      });
+      await refreshUser();
+      navigation.navigate("PremiumAccess");
+    } catch (e: unknown) {
+      const msg = e && typeof e === "object" && "message" in e ? String((e as { message: string }).message) : "Could not save plan";
+      Alert.alert("Plan error", msg);
+    } finally {
+      setSubmitting(false);
+    }
+  };
   const [restrictions, setRestrictions] = useState<string[]>(['lactose_free']);
   const [allergies, setAllergies] = useState<string[]>([]);
   const dietGoals = [
@@ -101,8 +136,7 @@ export const DietCustomizationScreen = ({ navigation }: any) => {
           {['Gluten-Free', 'Lactose-Free', 'Dairy-Free', 'Halal', 'No Sugar'].map((tag) => {
             const id = tag.toLowerCase().replace(' ', '_');
             const isActive = restrictions.includes(id);
-          
-  return (
+            return (
               <TouchableOpacity 
                 key={tag}
                 onPress={() => toggleRestriction(id)}
@@ -123,8 +157,7 @@ export const DietCustomizationScreen = ({ navigation }: any) => {
             {['Nuts', 'Shellfish', 'Eggs', 'Soy', 'Dairy'].map((tag) => {
               const id = tag.toLowerCase();
               const isActive = allergies.includes(id);
-            
-  return (
+              return (
                 <TouchableOpacity 
                   key={tag}
                   onPress={() => toggleAllergy(id)}
@@ -143,13 +176,19 @@ export const DietCustomizationScreen = ({ navigation }: any) => {
         <View style={styles.buttonRow}>
           <TouchableOpacity 
             style={styles.primaryButton}
-            onPress={() => navigation.navigate('CameraScan')}
+            disabled={submitting}
+            onPress={() => void commitPlan()}
           >
-            <Text style={styles.primaryButtonText}>Continue</Text>
+            {submitting ? (
+              <ActivityIndicator color={Colors.white} />
+            ) : (
+              <Text style={styles.primaryButtonText}>Continue</Text>
+            )}
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.secondaryButton}
-            onPress={() => navigation.navigate('CameraScan')}
+            disabled={submitting}
+            onPress={() => void commitPlan()}
           >
             <Text style={styles.secondaryButtonText}>Skip</Text>
           </TouchableOpacity>

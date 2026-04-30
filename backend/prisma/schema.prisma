@@ -15,6 +15,7 @@ model User {
   age                    Int?
   heightCm               Float?
   weightKg               Float?
+  sex                    String?
   createdAt              DateTime                 @default(now())
   updatedAt              DateTime                 @updatedAt
   dietProfile            DietProfile?
@@ -26,6 +27,9 @@ model User {
   shoppingLists          ShoppingList[]
   subscription           Subscription?
   notificationPreference NotificationPreference?
+  mealLogs               MealLog[]
+  weightLogs             WeightLog[]
+  progressPhotos         ProgressPhoto[]
 }
 
 model DietProfile {
@@ -45,6 +49,7 @@ model UserGoal {
   goalType       String
   targetWeightKg Float?
   targetDate     DateTime?
+  targetWeeks    Int?
   createdAt      DateTime @default(now())
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -97,17 +102,61 @@ model ScanDetection {
 }
 
 model Recipe {
-  id              String               @id @default(uuid())
-  title           String
-  description     String
-  prepMinutes     Int
-  cookMinutes     Int
-  difficulty      String
-  servings        Int
-  imageUrl        String?
-  ingredients     RecipeIngredient[]
-  recommendations MealRecommendation[]
-  mealPlanSlots   MealPlanSlot[]
+  id                 String               @id @default(uuid())
+  title              String
+  description        String
+  prepMinutes        Int
+  cookMinutes        Int
+  difficulty         String
+  servings           Int
+  imageUrl           String?
+  caloriesPerServing Int?
+  proteinG           Float?
+  carbsG             Float?
+  fatG               Float?
+  ingredients        RecipeIngredient[]
+  recommendations    MealRecommendation[]
+  mealPlanSlots      MealPlanSlot[]
+  mealLogs           MealLog[]
+}
+
+model MealLog {
+  id        String   @id @default(uuid())
+  userId    String
+  loggedDate DateTime @db.Date
+  recipeId  String?
+  label     String?
+  calories  Int
+  proteinG  Float
+  carbG     Float
+  fatG      Float
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipe    Recipe?  @relation(fields: [recipeId], references: [id], onDelete: SetNull)
+
+  @@index([userId, loggedDate])
+}
+
+model WeightLog {
+  id        String   @id @default(uuid())
+  userId    String
+  weightKg  Float
+  loggedAt  DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, loggedAt])
+}
+
+model ProgressPhoto {
+  id        String   @id @default(uuid())
+  userId    String
+  imageUrl  String
+  monthKey  String
+  note      String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, monthKey])
 }
 
 model RecipeIngredient {

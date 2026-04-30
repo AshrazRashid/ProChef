@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../../common/db.js";
-import { AuthedRequest, requireAuth } from "../../common/middleware.js";
+import { AuthedRequest, requireAuth, requireProEntitlement } from "../../common/middleware.js";
 import { buildScanObjectKey, createScanUploadUrl, objectExists } from "../../common/s3.js";
 import { scanQueue } from "../../jobs/queues.js";
 
@@ -20,7 +20,7 @@ const createScanSchema = z.union([
 ]);
 
 export const scansRouter = Router();
-scansRouter.use(requireAuth);
+scansRouter.use(requireAuth, requireProEntitlement);
 
 scansRouter.post("/upload-url", async (req: AuthedRequest, res) => {
   const parse = uploadUrlSchema.safeParse(req.body);
@@ -116,7 +116,7 @@ scansRouter.post("/", async (req: AuthedRequest, res) => {
 scansRouter.get("/:scanId", async (req: AuthedRequest, res) => {
   const scan = await prisma.scanSession.findFirst({
     where: { id: req.params.scanId, userId: req.user!.id },
-    include: { detections: true }
+    include: { detections: { include: { ingredient: true } } }
   });
   if (!scan) {
     res.status(404).json({ message: "Scan not found" });

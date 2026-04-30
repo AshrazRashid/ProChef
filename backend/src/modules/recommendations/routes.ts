@@ -97,10 +97,18 @@ recommendationsRouter.post("/meals", requireProEntitlement, async (req: AuthedRe
       score: r.score,
       reasons: r.reasonJson,
       recipe: {
+        id: r.recipe.id,
         title: r.recipe.title,
+        description: r.recipe.description,
         prepMinutes: r.recipe.prepMinutes,
         cookMinutes: r.recipe.cookMinutes,
-        difficulty: r.recipe.difficulty
+        difficulty: r.recipe.difficulty,
+        servings: r.recipe.servings,
+        imageUrl: r.recipe.imageUrl,
+        caloriesPerServing: r.recipe.caloriesPerServing,
+        proteinG: r.recipe.proteinG,
+        carbsG: r.recipe.carbsG,
+        fatG: r.recipe.fatG
       }
     }))
   });

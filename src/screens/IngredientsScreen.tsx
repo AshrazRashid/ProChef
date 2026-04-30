@@ -1,5 +1,5 @@
 import { SafeAreaView } from "react-native-safe-area-context";
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -8,20 +8,83 @@ import {
   ScrollView,
   Image,
   TextInput,
-  Dimensions
+  Dimensions,
+  ActivityIndicator,
+  Alert
 } from 'react-native';
+import { useRoute } from '@react-navigation/native';
 import { ChevronLeft, MoreVertical, Search, Plus, X, RotateCcw, Trash2, CheckCircle2 } from 'lucide-react-native';
 import { Colors } from '../constants/theme';
+import { apiJson } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 const { width } = Dimensions.get('window');
 
+type ScanDetection = {
+  id: string;
+  confidence: number;
+  ingredient: { name: string; category: string };
+};
+
+type ScanPayload = {
+  id: string;
+  status: string;
+  detections: ScanDetection[];
+};
+
 export const IngredientsScreen = ({ navigation }: any) => {
+  const route = useRoute<any>();
+  const scanId: string | undefined = route.params?.scanId;
+  const { hasPro } = useAuth();
   const [selectedFilter, setSelectedFilter] = useState('All');
-  const ingredients = [
-    { id: '1', name: 'Chicken Breast', confidence: 'HIGH CONFIDENCE', icon: require('../assets/icons/egg.png'), color: '#FFF' },
-    { id: '2', name: 'Large Eggs', confidence: 'HIGH CONFIDENCE', icon: require('../assets/icons/egg.png'), color: '#FFF' },
-    { id: '3', name: 'Spinach', confidence: 'MEDIUM CONFIDENCE', icon: require('../assets/icons/leaves.png'), color: '#E8F5E9' },
-    { id: '4', name: 'Greek Yogurt', confidence: 'HIGH CONFIDENCE', icon: require('../assets/icons/egg.png'), color: '#FFF' },
-  ];
+  const [scan, setScan] = useState<ScanPayload | null>(null);
+  const [confirming, setConfirming] = useState(false);
+
+  useEffect(() => {
+    if (!hasPro) {
+      navigation.replace("PremiumAccess");
+    }
+  }, [hasPro, navigation]);
+
+  useEffect(() => {
+    if (!scanId) {
+      return;
+    }
+    let alive = true;
+    const poll = async () => {
+      try {
+        const s = await apiJson<ScanPayload>(`/scans/${scanId}`, { method: "GET" });
+        if (!alive) {
+          return;
+        }
+        setScan(s);
+        if (s.status === "failed") {
+          Alert.alert("Scan", "Processing failed. Try again.");
+        }
+      } catch {
+        if (alive) {
+          setScan(null);
+        }
+      }
+    };
+    void poll();
+    const id = setInterval(poll, 2000);
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, [scanId]);
+
+  const ingredients =
+    scan?.detections?.map((d) => ({
+      id: d.id,
+      name: d.ingredient.name,
+      confidence: d.confidence >= 0.85 ? "HIGH CONFIDENCE" : "MEDIUM CONFIDENCE",
+      icon: require('../assets/icons/egg.png'),
+      color: d.ingredient.category === "vegetable" ? "#E8F5E9" : "#FFF"
+    })) ?? [];
+
+  const processing =
+    scan && ["uploading", "queued", "processing"].includes(scan.status);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -37,9 +100,16 @@ export const IngredientsScreen = ({ navigation }: any) => {
       </View>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Detection Card */}
+        {!scanId ? (
+          <Text style={styles.missingScan}>Open the scanner from the dashboard to start a scan.</Text>
+        ) : null}
         <View style={styles.detectionCard}>
           <View style={styles.detectionTextContent}>
-            <Text style={styles.detectionTitle}>We detected 10 ingredients {'\n'}from your scan</Text>
+            <Text style={styles.detectionTitle}>
+              {processing
+                ? "Processing your photo…"
+                : `We detected ${ingredients.length} ingredient${ingredients.length === 1 ? "" : "s"}\nfrom your scan`}
+            </Text>
             <Text style={styles.detectionSubtitle}>Remove anything you don't have or {'\n'}add missing items</Text>
           </View>
           <View style={styles.sparkleCircle}>
@@ -91,6 +161,12 @@ export const IngredientsScreen = ({ navigation }: any) => {
           </TouchableOpacity>
         </View>
         {/* Ingredients Grid */}
+        {processing ? (
+          <View style={styles.processingRow}>
+            <ActivityIndicator color={Colors.primary} />
+            <Text style={styles.processingText}>This can take a few seconds…</Text>
+          </View>
+        ) : null}
         <View style={styles.ingredientsGrid}>
           {ingredients.map((item) => (
             <View key={item.id} style={[styles.ingredientCard, { backgroundColor: item.color }]}>
@@ -117,16 +193,42 @@ export const IngredientsScreen = ({ navigation }: any) => {
         </View>
         <View style={styles.selectionLabelContainer}>
            <TouchableOpacity style={styles.selectionButton}>
-              <Text style={styles.selectionButtonText}>8 INGREDIENTS SELECTED</Text>
+              <Text style={styles.selectionButtonText}>
+                {ingredients.length} INGREDIENT{ingredients.length === 1 ? "" : "S"} DETECTED
+              </Text>
            </TouchableOpacity>
         </View>
         {/* Footer Buttons */}
         <View style={styles.footerButtons}>
           <TouchableOpacity 
             style={styles.generateButton}
-            onPress={() => navigation.navigate('Meals')}
+            disabled={!scanId || confirming || processing || ingredients.length === 0}
+            onPress={async () => {
+              if (!scanId) {
+                return;
+              }
+              setConfirming(true);
+              try {
+                await apiJson(`/scans/${scanId}/confirm`, { method: "POST" });
+                await apiJson("/recommendations/meals", {
+                  method: "POST",
+                  body: JSON.stringify({ limit: 20 })
+                });
+                navigation.navigate("Main", { screen: "Meal" });
+              } catch (e: unknown) {
+                const msg =
+                  e && typeof e === "object" && "message" in e ? String((e as { message: string }).message) : "Could not confirm";
+                Alert.alert("Ingredients", msg);
+              } finally {
+                setConfirming(false);
+              }
+            }}
           >
-            <Text style={styles.generateButtonText}>Generate Meal</Text>
+            {confirming ? (
+              <ActivityIndicator color={Colors.white} />
+            ) : (
+              <Text style={styles.generateButtonText}>Generate meals</Text>
+            )}
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.scanAgainButton}
@@ -401,5 +503,22 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 16,
     fontFamily: 'Inter-Bold',
+  },
+  missingScan: {
+    marginTop: 16,
+    color: '#666',
+    fontFamily: 'Inter-Regular',
+    fontSize: 14
+  },
+  processingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16
+  },
+  processingText: {
+    marginLeft: 8,
+    color: '#666',
+    fontFamily: 'Inter-Regular',
+    fontSize: 14
   },
 });

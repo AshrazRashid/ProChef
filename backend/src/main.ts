@@ -6,9 +6,10 @@ import { env } from "./common/config.js";
 import { prisma } from "./common/db.js";
 import { logger } from "./common/logger.js";
 import { globalApiLimiter } from "./common/rateLimit.js";
+import { requireAuth, type AuthedRequest } from "./common/middleware.js";
 import { redis } from "./common/redis.js";
 import { authRouter } from "./modules/auth/routes.js";
-import { billingRouter, handleStripeWebhook } from "./modules/billing/routes.js";
+import { billingRouter, handleStripeWebhook, readEntitlements } from "./modules/billing/routes.js";
 import { dashboardRouter } from "./modules/dashboard/routes.js";
 import { notificationsRouter } from "./modules/notifications/routes.js";
 import { pantryRouter } from "./modules/pantry/routes.js";
@@ -18,6 +19,8 @@ import { recommendationsRouter } from "./modules/recommendations/routes.js";
 import { recipesRouter } from "./modules/recipes/routes.js";
 import { scansRouter } from "./modules/scans/routes.js";
 import { shoppingRouter } from "./modules/shopping/routes.js";
+import { trackingRouter } from "./modules/tracking/routes.js";
+import { progressPhotosRouter } from "./modules/progress/routes.js";
 
 const app = express();
 if (env.TRUST_PROXY > 0) {
@@ -60,6 +63,10 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok", service: "prochef-backend" });
 });
 
+app.get("/entitlements", requireAuth, async (req: AuthedRequest, res: Response) => {
+  res.json(await readEntitlements(req.user!.id));
+});
+
 app.get("/health/ready", async (_req, res) => {
   const checks: { db: boolean; redis: boolean } = { db: false, redis: false };
   try {
@@ -93,6 +100,8 @@ app.use("/meal-plans", plannerRouter);
 app.use("/shopping-lists", shoppingRouter);
 app.use("/billing", billingRouter);
 app.use("/notifications", notificationsRouter);
+app.use("/tracking", trackingRouter);
+app.use("/progress-photos", progressPhotosRouter);
 
 const server = app.listen(env.PORT, () => {
   logger.info({ port: env.PORT, nodeEnv: env.NODE_ENV }, "backend_listen");

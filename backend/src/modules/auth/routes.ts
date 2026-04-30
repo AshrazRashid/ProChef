@@ -1,7 +1,9 @@
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import { Router } from "express";
 import { z } from "zod";
-import { createTokenPair } from "../../common/auth.js";
+import { createTokenPair, type AuthClaims } from "../../common/auth.js";
+import { env } from "../../common/config.js";
 import { prisma } from "../../common/db.js";
 import { authLimiter } from "../../common/rateLimit.js";
 
@@ -12,9 +14,28 @@ const signupSchema = z.object({
 
 const loginSchema = signupSchema;
 
+const refreshSchema = z.object({
+  refreshToken: z.string().min(10)
+});
+
 export const authRouter = Router();
 
 authRouter.use(authLimiter);
+
+authRouter.post("/refresh", async (req, res) => {
+  const parse = refreshSchema.safeParse(req.body);
+  if (!parse.success) {
+    res.status(400).json({ message: "Invalid payload", errors: parse.error.flatten() });
+    return;
+  }
+  try {
+    const claims = jwt.verify(parse.data.refreshToken, env.JWT_REFRESH_SECRET) as AuthClaims;
+    const tokens = createTokenPair({ sub: claims.sub, email: claims.email });
+    res.json(tokens);
+  } catch {
+    res.status(401).json({ message: "Invalid or expired refresh token" });
+  }
+});
 
 authRouter.post("/signup", async (req, res) => {
   const parse = signupSchema.safeParse(req.body);

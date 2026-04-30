@@ -7,14 +7,21 @@ import {
   TouchableOpacity, 
   ScrollView, 
   Image,
-  Dimensions
+  Dimensions,
+  ActivityIndicator,
+  Alert,
+  Linking
 } from 'react-native';
 import { X, CheckCircle2, ShieldCheck, CalendarRange, Star } from 'lucide-react-native';
 import { Colors } from '../constants/theme';
+import { apiJson } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 const { width } = Dimensions.get('window');
 
 export const PremiumAccessScreen = ({ navigation }: any) => {
-  const [selectedPlan, setSelectedPlan] = useState('yearly');
+  const { refreshEntitlements } = useAuth();
+  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const features = [
     { title: 'Unlimited AI Scans', desc: 'Instant nutritional data for any dish.' },
     { title: 'Advanced AI Meal Plans', desc: 'Evolving plans that learn your tastes.' },
@@ -27,7 +34,10 @@ export const PremiumAccessScreen = ({ navigation }: any) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
+        <TouchableOpacity
+          onPress={() => (navigation.canGoBack() ? navigation.goBack() : undefined)}
+          style={styles.closeButton}
+        >
           <X color={Colors.white} size={24} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Premium Access</Text>
@@ -113,9 +123,37 @@ export const PremiumAccessScreen = ({ navigation }: any) => {
         {/* Action Button */}
         <TouchableOpacity 
           style={styles.primaryButton}
-          onPress={() => navigation.navigate('AddCard')}
+          disabled={checkoutLoading}
+          onPress={async () => {
+            setCheckoutLoading(true);
+            try {
+              const res = await apiJson<{ checkoutUrl: string | null }>("/billing/checkout-session", {
+                method: "POST",
+                body: JSON.stringify({ plan: selectedPlan })
+              });
+              if (!res.checkoutUrl) {
+                Alert.alert("Billing", "No checkout URL returned.");
+                return;
+              }
+              const can = await Linking.canOpenURL(res.checkoutUrl);
+              if (can) {
+                await Linking.openURL(res.checkoutUrl);
+              }
+              await refreshEntitlements();
+            } catch (e: unknown) {
+              const msg =
+                e && typeof e === "object" && "message" in e ? String((e as { message: string }).message) : "Checkout failed";
+              Alert.alert("Billing", msg);
+            } finally {
+              setCheckoutLoading(false);
+            }
+          }}
         >
-           <Text style={styles.primaryButtonText}>Start 7-Day Free Trail</Text>
+          {checkoutLoading ? (
+            <ActivityIndicator color={Colors.white} />
+          ) : (
+            <Text style={styles.primaryButtonText}>Subscribe with Stripe</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

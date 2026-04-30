@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../../common/db.js";
-import { AuthedRequest, requireAuth } from "../../common/middleware.js";
+import { AuthedRequest, requireAuth, requireProEntitlement } from "../../common/middleware.js";
 
 type RecipeWithIngredients = Awaited<ReturnType<typeof getRecipesWithIngredients>>[number];
 
@@ -35,7 +35,7 @@ async function getRecipesWithIngredients() {
 }
 
 export const recipesRouter = Router();
-recipesRouter.use(requireAuth);
+recipesRouter.use(requireAuth, requireProEntitlement);
 
 recipesRouter.get("/", async (req: AuthedRequest, res) => {
   const pantryItems = await prisma.pantryItem.findMany({

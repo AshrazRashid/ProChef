@@ -1,5 +1,5 @@
 import { SafeAreaView } from "react-native-safe-area-context";
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -8,14 +8,68 @@ import {
   ScrollView, 
   Image,
   Dimensions,
-  Switch
+  Switch,
+  ActivityIndicator
 } from 'react-native';
-import { ChevronLeft, Filter, Zap, Heart, LayoutDashboard, Calendar, Utensils, ChefHat, AlertCircle } from 'lucide-react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { ChevronLeft, Filter, Zap, Heart, Utensils, ChefHat, AlertCircle } from 'lucide-react-native';
 import { Colors } from '../constants/theme';
+import { apiJson } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 const { width } = Dimensions.get('window');
 
+type RecItem = {
+  recipeId: string;
+  score: number;
+  recipe: {
+    id: string;
+    title: string;
+    prepMinutes: number;
+    cookMinutes: number;
+    caloriesPerServing: number | null;
+    proteinG: number | null;
+    carbsG: number | null;
+    fatG: number | null;
+  };
+};
+
 export const MealRecommendationsScreen = ({ navigation }: any) => {
+  const { hasPro } = useAuth();
   const [showImpact, setShowImpact] = useState(true);
+  const [items, setItems] = useState<RecItem[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    if (!hasPro) {
+      navigation.replace("PremiumAccess");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await apiJson<{ items: RecItem[] }>("/recommendations/meals", {
+        method: "POST",
+        body: JSON.stringify({ limit: 20 })
+      });
+      setItems(res.items ?? []);
+    } catch (e: unknown) {
+      const status = e && typeof e === "object" && "status" in e ? (e as { status: number }).status : 0;
+      if (status === 402) {
+        navigation.replace("PremiumAccess");
+      }
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [hasPro, navigation]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load])
+  );
+
+  const top = items[0];
+  const rest = items.slice(1);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -50,30 +104,37 @@ export const MealRecommendationsScreen = ({ navigation }: any) => {
               />
            </View>
         </View>
+        {loading ? (
+          <View style={styles.loadingBox}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+            <Text style={styles.loadingText}>Loading pantry-based recipes…</Text>
+          </View>
+        ) : null}
         {/* Main Recommendation Card */}
+        {top ? (
         <TouchableOpacity 
           style={styles.mainCard}
-          onPress={() => navigation.navigate('RecipeDetails')}
+          onPress={() => navigation.navigate("RecipeDetails", { recipeId: top.recipe.id })}
         >
            <View style={styles.imageContainer}>
               <Image source={require('../assets/images/LemonChicken.png')} style={styles.mainImage} />
               <View style={styles.badgesCol}>
-                 <View style={styles.badgeLabel}><Text style={styles.badgeTextSmall}>HIGH PROTEIN</Text></View>
-                 <View style={[styles.badgeLabel, { backgroundColor: Colors.primary }]}><Text style={styles.badgeTextSmall}>100% MATCH</Text></View>
+                 <View style={styles.badgeLabel}><Text style={styles.badgeTextSmall}>PANTRY MATCH</Text></View>
+                 <View style={[styles.badgeLabel, { backgroundColor: Colors.primary }]}><Text style={styles.badgeTextSmall}>{Math.round(top.score * 100)}% SCORE</Text></View>
               </View>
               <TouchableOpacity style={styles.heartBtn}><Heart size={20} color="#333" /></TouchableOpacity>
            </View>
            <View style={styles.cardInfo}>
               <View style={styles.cardHeader}>
-                 <Text style={styles.mainTitle}>Zesty Lemon Chicken with Spinach</Text>
-                 <View style={styles.timeRow}><Image source={require('../assets/icons/tick.png')} style={styles.timeIcon} /><Text style={styles.timeText}>15 min</Text></View>
+                 <Text style={styles.mainTitle}>{top.recipe.title}</Text>
+                 <View style={styles.timeRow}><Image source={require('../assets/icons/tick.png')} style={styles.timeIcon} /><Text style={styles.timeText}>{top.recipe.prepMinutes + top.recipe.cookMinutes} min</Text></View>
               </View>
               <View style={styles.nutritionGrid}>
                  {[
-                   { l: 'CALS', v: '450', c: '#E8F5E9' },
-                   { l: 'PROT', v: '42g', c: '#F5F5F5' },
-                   { l: 'CARB', v: '12g', c: '#F5F5F5' },
-                   { l: 'FAT', v: '18g', c: '#F5F5F5' }
+                   { l: 'CALS', v: top.recipe.caloriesPerServing != null ? String(top.recipe.caloriesPerServing) : "—", c: '#E8F5E9' },
+                   { l: 'PROT', v: top.recipe.proteinG != null ? `${Math.round(top.recipe.proteinG)}g` : "—", c: '#F5F5F5' },
+                   { l: 'CARB', v: top.recipe.carbsG != null ? `${Math.round(top.recipe.carbsG)}g` : "—", c: '#F5F5F5' },
+                   { l: 'FAT', v: top.recipe.fatG != null ? `${Math.round(top.recipe.fatG)}g` : "—", c: '#F5F5F5' }
                  ].map((n, i) => (
                    <View key={i} style={[styles.nutBox, { backgroundColor: n.c }]}>
                       <Text style={styles.nutLabel}>{n.l}</Text>
@@ -82,28 +143,31 @@ export const MealRecommendationsScreen = ({ navigation }: any) => {
                  ))}
               </View>
               <View style={styles.actionRow}>
-                 <TouchableOpacity style={styles.viewRecipeBtn}><Text style={styles.viewRecipeText}>View Recipe</Text></TouchableOpacity>
+                 <TouchableOpacity style={styles.viewRecipeBtn} onPress={() => navigation.navigate("RecipeDetails", { recipeId: top.recipe.id })}><Text style={styles.viewRecipeText}>View Recipe</Text></TouchableOpacity>
                  <TouchableOpacity style={styles.flashBtn}><Zap size={20} color={Colors.primary} /></TouchableOpacity>
               </View>
            </View>
         </TouchableOpacity>
+        ) : !loading ? (
+          <Text style={styles.emptyText}>Add ingredients from a scan, then refresh recommendations.</Text>
+        ) : null}
         {/* Best Match Banner */}
-        <TouchableOpacity style={styles.bannerCard}>
+        <TouchableOpacity style={styles.bannerCard} disabled={!rest[0]} onPress={() => rest[0] && navigation.navigate("RecipeDetails", { recipeId: rest[0].recipe.id })}>
            <View style={styles.bannerContent}>
               <View style={styles.bannerHeader}>
                  <ChefHat size={16} color={Colors.white} />
-                 <Text style={styles.bannerHeaderText}>BEST MATCH FOR YOUR GOAL</Text>
+                 <Text style={styles.bannerHeaderText}>NEXT BEST MATCH</Text>
               </View>
-              <Text style={styles.bannerTitle}>Super-Green Protein Bowl</Text>
-              <Text style={styles.bannerDesc}>"Highest protein with lowest calories based on your fat loss goal"</Text>
+              <Text style={styles.bannerTitle}>{rest[0]?.recipe.title ?? "—"}</Text>
+              <Text style={styles.bannerDesc}>Ranked from your pantry overlap (V1 pantry matching).</Text>
               <View style={styles.bannerStats}>
                  <View>
-                    <Text style={styles.bannerStatLabel}>EFFICIENCY</Text>
-                    <Text style={styles.bannerStatValue}>98%</Text>
+                    <Text style={styles.bannerStatLabel}>SCORE</Text>
+                    <Text style={styles.bannerStatValue}>{rest[0] ? Math.round(rest[0].score * 100) : 0}%</Text>
                  </View>
                  <View style={{ marginLeft: 30 }}>
-                    <Text style={styles.bannerStatLabel}>NET CARBS</Text>
-                    <Text style={styles.bannerStatValue}>8g</Text>
+                    <Text style={styles.bannerStatLabel}>CALS</Text>
+                    <Text style={styles.bannerStatValue}>{rest[0]?.recipe.caloriesPerServing ?? "—"}</Text>
                  </View>
                  <TouchableOpacity style={styles.getStartedBtn}><Text style={styles.getStartedText}>Get Started</Text></TouchableOpacity>
               </View>
@@ -112,21 +176,22 @@ export const MealRecommendationsScreen = ({ navigation }: any) => {
               <Image source={require('../assets/images/QuinoaSalad.png')} style={styles.bannerImage} />
            </View>
         </TouchableOpacity>
-        {/* Secondary Recommendation */}
-        <TouchableOpacity style={styles.listCard}>
+        {rest.slice(1).map((row) => (
+        <TouchableOpacity key={row.recipeId} style={styles.listCard} onPress={() => navigation.navigate("RecipeDetails", { recipeId: row.recipe.id })}>
            <Image source={require('../assets/images/SpinachAndOmelette.png')} style={styles.listImage} />
            <View style={styles.listContent}>
-              <Text style={styles.listTitle}>Spinach & Feta Egg Scramble</Text>
+              <Text style={styles.listTitle}>{row.recipe.title}</Text>
               <View style={styles.warningRow}>
                  <AlertCircle size={14} color="#FF9800" />
-                 <Text style={styles.warningText}>MISSING: FETA CHEESE</Text>
+                 <Text style={styles.warningText}>SCORE {Math.round(row.score * 100)}%</Text>
               </View>
               <View style={styles.listFooter}>
-                 <Text style={styles.listInfo}>Easy • 10 min</Text>
-                 <TouchableOpacity><Text style={styles.subsText}>SEE SUBS</Text></TouchableOpacity>
+                 <Text style={styles.listInfo}>{row.recipe.prepMinutes + row.recipe.cookMinutes} min</Text>
+                 <TouchableOpacity onPress={() => navigation.navigate("RecipeDetails", { recipeId: row.recipe.id })}><Text style={styles.subsText}>OPEN</Text></TouchableOpacity>
               </View>
            </View>
         </TouchableOpacity>
+        ))}
       </ScrollView>
     </SafeAreaView>
   );
@@ -194,4 +259,7 @@ const styles = StyleSheet.create({
   tabItem: { alignItems: 'center' },
   tabActive: { borderTopWidth: 2, borderTopColor: Colors.primary, paddingTop: 6 },
   tabLabel: { fontSize: 8, color: '#999', fontFamily: 'Inter-Bold', marginTop: 4 },
+  loadingBox: { paddingVertical: 40, alignItems: 'center' },
+  loadingText: { marginTop: 12, color: '#666', fontFamily: 'Inter-Regular', fontSize: 13 },
+  emptyText: { color: '#666', fontFamily: 'Inter-Regular', fontSize: 14, marginBottom: 16 },
 });

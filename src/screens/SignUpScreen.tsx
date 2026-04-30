@@ -9,12 +9,20 @@ import {
   Image, 
   KeyboardAvoidingView, 
   Platform,
-  ScrollView
+  ScrollView,
+  ActivityIndicator,
+  Alert
 } from 'react-native';
+import { CommonActions } from '@react-navigation/native';
 import { Colors } from '../constants/theme';
+import { useAuth } from '../context/AuthContext';
 
 export const SignUpScreen = ({ navigation }: any) => {
+  const { signUp } = useAuth();
   const [agreed, setAgreed] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -42,25 +50,22 @@ export const SignUpScreen = ({ navigation }: any) => {
             <View style={styles.inputContainer}>
               <TextInput
                 style={styles.input}
-                placeholder="Full Name"
-                placeholderTextColor={Colors.textSecondary}
-              />
-            </View>
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={styles.input}
                 placeholder="Email"
                 placeholderTextColor={Colors.textSecondary}
                 autoCapitalize="none"
                 keyboardType="email-address"
+                value={email}
+                onChangeText={setEmail}
               />
             </View>
             <View style={styles.inputContainer}>
               <TextInput
                 style={styles.input}
-                placeholder="Password"
+                placeholder="Password (min 8 characters)"
                 placeholderTextColor={Colors.textSecondary}
                 secureTextEntry
+                value={password}
+                onChangeText={setPassword}
               />
             </View>
             <TouchableOpacity 
@@ -76,15 +81,32 @@ export const SignUpScreen = ({ navigation }: any) => {
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.primaryButton}
-              onPress={() => navigation.navigate('Verification')}
+              disabled={busy || !agreed}
+              onPress={async () => {
+                setBusy(true);
+                try {
+                  const next = await signUp(email.trim(), password);
+                  navigation.dispatch(
+                    CommonActions.reset({
+                      index: 0,
+                      routes: [{ name: next }]
+                    })
+                  );
+                } catch (e: unknown) {
+                  const msg = e instanceof Error ? e.message : "Sign up failed";
+                  Alert.alert("Sign up", msg);
+                } finally {
+                  setBusy(false);
+                }
+              }}
             >
-              <Text style={styles.primaryButtonText}>Continue</Text>
+              {busy ? <ActivityIndicator color={Colors.white} /> : <Text style={styles.primaryButtonText}>Continue</Text>}
             </TouchableOpacity>
           </View>
           {/* Footer */}
           <View style={styles.footer}>
             <Text style={styles.footerText}>
-              Don't have an account? <Text style={styles.footerLink} onPress={() => navigation.navigate('SignIn')}>Sign In</Text>
+              Already have an account? <Text style={styles.footerLink} onPress={() => navigation.navigate('SignIn')}>Sign In</Text>
             </Text>
           </View>
         </ScrollView>

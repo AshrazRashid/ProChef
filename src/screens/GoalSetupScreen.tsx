@@ -11,11 +11,13 @@ import {
 } from 'react-native';
 import { ChevronLeft } from 'lucide-react-native';
 import { Colors } from '../constants/theme';
+import { useOnboarding, type ApiGoalType } from '../context/OnboardingContext';
 const { width } = Dimensions.get('window');
 
 export const GoalSetupScreen = ({ navigation }: any) => {
-  const [selectedGoal, setSelectedGoal] = useState('fat_loss');
-  const goals = [
+  const { setGoalType } = useOnboarding();
+  const [selectedGoal, setSelectedGoal] = useState<ApiGoalType>('fat_loss');
+  const goals: { id: ApiGoalType; title: string; icon: number }[] = [
     { id: 'fat_loss', title: 'Fat Loss', icon: require('../assets/icons/drop.png') },
     { id: 'muscle_gain', title: 'Muscle Gain', icon: require('../assets/icons/dumbell.png') },
     { id: 'maintenance', title: 'Maintenance', icon: require('../assets/icons/maintenance.png') },
@@ -89,7 +91,7 @@ export const GoalSetupScreen = ({ navigation }: any) => {
             {goals.map((goal) => (
               <TouchableOpacity 
                 key={goal.id}
-                onPress={() => setSelectedGoal(goal.id)}
+                onPress={() => setSelectedGoal(goal.id as ApiGoalType)}
                 style={[
                   styles.goalCard, 
                   selectedGoal === goal.id && styles.goalCardActive
@@ -107,7 +109,10 @@ export const GoalSetupScreen = ({ navigation }: any) => {
         </View>
         <TouchableOpacity 
           style={styles.primaryButton}
-          onPress={() => navigation.navigate('AboutYourself')}
+          onPress={() => {
+            setGoalType(selectedGoal);
+            navigation.navigate('AboutYourself');
+          }}
         >
           <Text style={styles.primaryButtonText}>Continue</Text>
         </TouchableOpacity>
