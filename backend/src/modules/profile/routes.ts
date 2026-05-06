@@ -1,7 +1,9 @@
+import bcrypt from "bcryptjs";
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../../common/db.js";
 import { AuthedRequest, requireAuth } from "../../common/middleware.js";
+import { authLimiter } from "../../common/rateLimit.js";
 import { computeNutritionPlan, type GoalType, type Sex } from "../../common/nutritionPlan.js";
 
 const goalTypeSchema = z.enum(["fat_loss", "muscle_gain", "maintenance", "healthy_eating"]);
@@ -28,6 +30,15 @@ const upsertGoalSchema = z.object({
   targetWeightKg: z.number().positive().optional(),
   targetDate: z.string().datetime().optional(),
   targetWeeks: z.number().int().min(1).max(104).optional()
+});
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z
+    .string()
+    .min(8)
+    .regex(/\d/, "New password must include a number")
+    .regex(/[!@#$%^&*(),.?":{}|<>]/, "New password must include a special character")
 });
 
 const planBodySchema = z.object({
@@ -79,7 +90,34 @@ profileRouter.get("/me", async (req: AuthedRequest, res) => {
     return;
   }
   const planSummary = await buildPlanSummaryForUser(userId);
-  res.json({ ...user, planSummary });
+  const { passwordHash, ...safeUser } = user;
+  void passwordHash;
+  res.json({ ...safeUser, planSummary });
+});
+
+profileRouter.post("/me/change-password", authLimiter, async (req: AuthedRequest, res) => {
+  const parse = changePasswordSchema.safeParse(req.body);
+  if (!parse.success) {
+    res.status(400).json({ message: "Invalid payload", errors: parse.error.flatten() });
+    return;
+  }
+  const userId = req.user!.id;
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    res.status(404).json({ message: "User not found" });
+    return;
+  }
+  const valid = await bcrypt.compare(parse.data.currentPassword, user.passwordHash);
+  if (!valid) {
+    res.status(401).json({ message: "Current password is incorrect" });
+    return;
+  }
+  const passwordHash = await bcrypt.hash(parse.data.newPassword, 10);
+  await prisma.user.update({
+    where: { id: userId },
+    data: { passwordHash }
+  });
+  res.json({ message: "Password updated" });
 });
 
 profileRouter.patch("/me", async (req: AuthedRequest, res) => {

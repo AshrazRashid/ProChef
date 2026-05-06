@@ -85,7 +85,7 @@ export const SignUpScreen = ({ navigation }: any) => {
               onPress={async () => {
                 setBusy(true);
                 try {
-                  const next = await signUp(email.trim(), password);
+                  const next = await signUp(email.trim().toLowerCase(), password);
                   navigation.dispatch(
                     CommonActions.reset({
                       index: 0,

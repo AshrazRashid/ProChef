@@ -7,14 +7,18 @@ import {
   TextInput, 
   TouchableOpacity, 
   Image,
-  Dimensions
+  Dimensions,
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 import { ChevronLeft } from 'lucide-react-native';
 import { Colors } from '../constants/theme';
+import { apiJson } from "../api/client";
 const { width } = Dimensions.get('window');
 
 export const ForgotPasswordScreen = ({ navigation }: any) => {
   const [email, setEmail] = useState('');
+  const [busy, setBusy] = useState(false);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -52,9 +56,31 @@ export const ForgotPasswordScreen = ({ navigation }: any) => {
         {/* Continue Button */}
         <TouchableOpacity 
           style={styles.primaryButton}
-          onPress={() => navigation.navigate('Verification')}
+          disabled={busy}
+          onPress={async () => {
+            const normalized = email.trim().toLowerCase();
+            if (!normalized) {
+              Alert.alert("Forgot password", "Please enter your email.");
+              return;
+            }
+            setBusy(true);
+            try {
+              await apiJson("/auth/forgot-password/request", {
+                method: "POST",
+                body: JSON.stringify({ email: normalized })
+              });
+              navigation.navigate('Verification', {
+                email: normalized
+              });
+            } catch (e: unknown) {
+              const msg = e && typeof e === "object" && "message" in e ? String((e as { message: string }).message) : "Could not send code";
+              Alert.alert("Forgot password", msg);
+            } finally {
+              setBusy(false);
+            }
+          }}
         >
-          <Text style={styles.primaryButtonText}>Continue</Text>
+          {busy ? <ActivityIndicator color={Colors.white} /> : <Text style={styles.primaryButtonText}>Continue</Text>}
         </TouchableOpacity>
         {/* Footer */}
         <TouchableOpacity 

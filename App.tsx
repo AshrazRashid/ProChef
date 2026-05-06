@@ -23,6 +23,7 @@ import { SignInScreen } from "./src/screens/SignInScreen";
 import { SignUpScreen } from "./src/screens/SignUpScreen";
 import { ForgotPasswordScreen } from "./src/screens/ForgotPasswordScreen";
 import { VerificationScreen } from "./src/screens/VerificationScreen";
+import { ResetPasswordScreen } from "./src/screens/ResetPasswordScreen";
 import { GoalSetupScreen } from "./src/screens/GoalSetupScreen";
 import { AboutYourselfScreen } from "./src/screens/AboutYourselfScreen";
 import { DietCustomizationScreen } from "./src/screens/DietCustomizationScreen";
@@ -31,6 +32,7 @@ import { IngredientsScreen } from "./src/screens/IngredientsScreen";
 import { MealsScreen } from "./src/screens/MealsScreen";
 import { MealDiscoveryScreen } from "./src/screens/MealDiscoveryScreen";
 import { PremiumAccessScreen } from "./src/screens/PremiumAccessScreen";
+import { BillingReturnScreen } from "./src/screens/BillingReturnScreen";
 import { AddCardScreen } from "./src/screens/AddCardScreen";
 import { RecipeDetailsScreen } from "./src/screens/RecipeDetailsScreen";
 import { CustomMealScreen } from "./src/screens/CustomMealScreen";
@@ -101,17 +103,38 @@ function MainTabs() {
 }
 
 function RootNavigator() {
-  const { bootstrapped, resolveInitialRoute, accessToken, hasPro, user } = useAuth();
+  const { bootstrapped, resolveInitialRoute, accessToken, user } = useAuth();
 
   if (!bootstrapped) {
     return <View style={{ flex: 1, backgroundColor: Colors.background }} />;
   }
 
+  /**
+   * When accessToken is set, resolveInitialRoute uses `user` from /me.
+   * On the first render after login, `accessToken` updates before `user` — resolveInitialRoute()
+   * incorrectly returns Welcome (because !user?.dietProfile), remounting the stack onto Welcome
+   * and killing navigation from Sign In. Wait until /me has loaded whenever we have a token.
+   */
+  if (accessToken && !user) {
+    return <View style={{ flex: 1, backgroundColor: Colors.background }} />;
+  }
+
   const initialRouteName = resolveInitialRoute();
-  const navKey = `${accessToken ?? "anon"}-${Boolean(user?.dietProfile)}-${hasPro}`;
+  /** Only remount when login/logout changes stored session — not when /me or entitlements refresh (that was wiping navigation resets). */
+  const navKey = accessToken ?? "anon";
+
+  const linking = {
+    prefixes: [Linking.createURL("/"), "prochef://"],
+    config: {
+      screens: {
+        BillingSuccess: "billing/success",
+        BillingCancel: "billing/cancel"
+      }
+    }
+  };
 
   return (
-    <NavigationContainer linking={{ prefixes: [Linking.createURL("/"), "prochef://"] }}>
+    <NavigationContainer linking={linking}>
       <StatusBar style="light" />
       <Stack.Navigator
         key={navKey}
@@ -126,10 +149,13 @@ function RootNavigator() {
         <Stack.Screen name="SignUp" component={SignUpScreen} />
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         <Stack.Screen name="Verification" component={VerificationScreen} />
+        <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
         <Stack.Screen name="GoalSetup" component={GoalSetupScreen} />
         <Stack.Screen name="AboutYourself" component={AboutYourselfScreen} />
         <Stack.Screen name="DietCustomization" component={DietCustomizationScreen} />
         <Stack.Screen name="PremiumAccess" component={PremiumAccessScreen} />
+        <Stack.Screen name="BillingSuccess" component={BillingReturnScreen} />
+        <Stack.Screen name="BillingCancel" component={BillingReturnScreen} />
         <Stack.Screen name="Main" component={MainTabs} />
         <Stack.Screen name="CameraScan" component={CameraScanScreen} />
         <Stack.Screen name="Ingredients" component={IngredientsScreen} />
@@ -154,7 +180,7 @@ export default function App() {
   const [appIsReady, setAppIsReady] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
 
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontLoadError] = useFonts({
     "Inter-Regular": Inter_400Regular,
     "Inter-SemiBold": Inter_600SemiBold,
     "Inter-Bold": Inter_700Bold,
@@ -162,11 +188,11 @@ export default function App() {
   });
 
   useEffect(() => {
-    if (fontsLoaded) {
+    if (fontsLoaded || fontLoadError) {
       setAppIsReady(true);
       SplashScreenLib.hideAsync();
     }
-  }, [fontsLoaded]);
+  }, [fontsLoaded, fontLoadError]);
 
   if (!appIsReady) {
     return null;

@@ -12,6 +12,7 @@ import {
   Alert
 } from 'react-native';
 import { CommonActions } from '@react-navigation/native';
+import { Eye, EyeOff } from 'lucide-react-native';
 import { Colors } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 const { width } = Dimensions.get('window');
@@ -20,6 +21,7 @@ export const SignInScreen = ({ navigation }: any) => {
   const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
 
   return (
@@ -38,19 +40,34 @@ export const SignInScreen = ({ navigation }: any) => {
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
-            placeholder="Phone / Email"
+            placeholder="Email"
             placeholderTextColor={Colors.textSecondary}
+            autoCapitalize="none"
+            keyboardType="email-address"
             value={email}
             onChangeText={setEmail}
           />
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            placeholderTextColor={Colors.textSecondary}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
+          <View style={styles.passwordInputWrap}>
+            <TextInput
+              style={[styles.input, styles.passwordInput]}
+              placeholder="Password"
+              placeholderTextColor={Colors.textSecondary}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+            />
+            <TouchableOpacity
+              onPress={() => setShowPassword((prev) => !prev)}
+              style={styles.eyeButton}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              {showPassword ? (
+                <EyeOff color={Colors.textSecondary} size={20} />
+              ) : (
+                <Eye color={Colors.textSecondary} size={20} />
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
         {/* Continue Button */}
         <TouchableOpacity 
@@ -59,13 +76,15 @@ export const SignInScreen = ({ navigation }: any) => {
           onPress={async () => {
             setBusy(true);
             try {
-              const next = await signIn(email.trim(), password);
-              navigation.dispatch(
-                CommonActions.reset({
-                  index: 0,
-                  routes: [{ name: next }]
-                })
-              );
+              await signIn(email.trim().toLowerCase(), password);
+              queueMicrotask(() => {
+                navigation.dispatch(
+                  CommonActions.reset({
+                    index: 0,
+                    routes: [{ name: "Main" }]
+                  })
+                );
+              });
             } catch (e: unknown) {
               const msg = e instanceof Error ? e.message : "Sign in failed";
               Alert.alert("Sign in", msg);
@@ -142,6 +161,20 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 1,
     borderColor: '#333',
+  },
+  passwordInputWrap: {
+    position: 'relative',
+  },
+  passwordInput: {
+    paddingRight: 52,
+    marginBottom: 0,
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: 16,
+    top: 0,
+    height: 60,
+    justifyContent: 'center',
   },
   primaryButton: {
     backgroundColor: Colors.primary,

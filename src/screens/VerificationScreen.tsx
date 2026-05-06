@@ -5,36 +5,74 @@ import {
   Text, 
   StyleSheet, 
   TouchableOpacity, 
-  Dimensions
+  Dimensions,
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 import { ChevronLeft, Delete } from 'lucide-react-native';
 import OTPTextInput from 'react-native-otp-textinput';
+import { useRoute } from "@react-navigation/native";
 import { Colors } from '../constants/theme';
+import { apiJson } from "../api/client";
 const { width } = Dimensions.get('window');
 
 export const VerificationScreen = ({ navigation }: any) => {
+  const route = useRoute<any>();
+  const email = typeof route.params?.email === "string" ? route.params.email : "";
   const [code, setCode] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [submittedCode, setSubmittedCode] = useState<string | null>(null);
   const otpInput = useRef<any>(null);
   // Robust navigation logic using useEffect
   useEffect(() => {
-    if (code.length === 4) {
+    if (code.length === 4 && !verifying && submittedCode !== code) {
       const timer = setTimeout(() => {
-        navigation.navigate('GoalSetup');
+        void (async () => {
+          if (!email) {
+            Alert.alert("Verification", "Missing email. Go back and try again.");
+            return;
+          }
+          setVerifying(true);
+          setSubmittedCode(code);
+          try {
+            await apiJson("/auth/forgot-password/verify", {
+              method: "POST",
+              body: JSON.stringify({ email, code })
+            });
+            navigation.navigate("ResetPassword", { email, code });
+          } catch (e: unknown) {
+            const msg =
+              e && typeof e === "object" && "message" in e ? String((e as { message: string }).message) : "Could not verify code";
+            Alert.alert("Verification", msg);
+            setCode("");
+            setSubmittedCode(null);
+            otpInput.current?.setValue("");
+          } finally {
+            setVerifying(false);
+          }
+        })();
       }, 400); 
     
   return () => clearTimeout(timer);
     }
-  }, [code, navigation]);
+  }, [code, email, navigation, verifying, submittedCode]);
   const handlePress = (num: string) => {
-    if (code.length < 4) {
+    if (code.length < 4 && !verifying) {
       const newCode = code + num;
       setCode(newCode);
       otpInput.current?.setValue(newCode);
     }
   };
   const handleDelete = () => {
+    if (verifying) {
+      return;
+    }
     const newCode = code.slice(0, -1);
     setCode(newCode);
+    if (newCode.length < 4) {
+      setSubmittedCode(null);
+    }
     otpInput.current?.setValue(newCode);
   };
 
@@ -51,7 +89,8 @@ export const VerificationScreen = ({ navigation }: any) => {
         <Text style={styles.title}>Email Verification</Text>
         <Text style={styles.subtitle}>
           We sent a code to your email {'\n'}
-          <Text style={styles.emailText}>test@gmail.com</Text> <Text style={styles.changeLink}>Change</Text>
+          <Text style={styles.emailText}>{email || "your email"}</Text>{" "}
+          <Text style={styles.changeLink} onPress={() => navigation.goBack()}>Change</Text>
         </Text>
         {/* Branded OTP Input Library */}
         <View style={styles.otpWrapper}>
@@ -67,8 +106,41 @@ export const VerificationScreen = ({ navigation }: any) => {
           />
         </View>
         <Text style={styles.resendText}>
-          Don't receive your code? <Text style={styles.resendLink}>Resend</Text>
+          Don't receive your code?{" "}
+          <Text
+            style={styles.resendLink}
+            onPress={async () => {
+              if (!email || resending) {
+                return;
+              }
+              setResending(true);
+              try {
+                await apiJson("/auth/forgot-password/resend", {
+                  method: "POST",
+                  body: JSON.stringify({ email })
+                });
+                Alert.alert("Verification", "A new code has been sent.");
+                setCode("");
+                setSubmittedCode(null);
+                otpInput.current?.setValue("");
+              } catch (e: unknown) {
+                const msg =
+                  e && typeof e === "object" && "message" in e ? String((e as { message: string }).message) : "Could not resend code";
+                Alert.alert("Verification", msg);
+              } finally {
+                setResending(false);
+              }
+            }}
+          >
+            {resending ? "Sending..." : "Resend"}
+          </Text>
         </Text>
+        {verifying ? (
+          <View style={styles.verifyingRow}>
+            <ActivityIndicator color={Colors.secondary} />
+            <Text style={styles.verifyingText}>Verifying code…</Text>
+          </View>
+        ) : null}
       </View>
       {/* Numeric Keypad */}
       <View style={styles.keypad}>
@@ -175,6 +247,17 @@ const styles = StyleSheet.create({
   resendLink: {
     color: Colors.secondary,
     fontFamily: 'Inter-SemiBold',
+  },
+  verifyingRow: {
+    marginTop: 14,
+    flexDirection: "row",
+    alignItems: "center"
+  },
+  verifyingText: {
+    marginLeft: 8,
+    color: Colors.textSecondary,
+    fontFamily: "Inter-Regular",
+    fontSize: 13
   },
   keypad: {
     position: 'absolute',

@@ -14,11 +14,17 @@ const authStore = new RedisStore({
   prefix: "rl:auth:",
   sendCommand
 });
+const forgotPasswordStore = new RedisStore({
+  prefix: "rl:forgot-password:",
+  sendCommand
+});
 
 const globalWindowMs = Number(process.env.RATE_LIMIT_GLOBAL_WINDOW_MS ?? 15 * 60 * 1000);
 const globalMax = Number(process.env.RATE_LIMIT_GLOBAL_MAX ?? 500);
 const authWindowMs = Number(process.env.RATE_LIMIT_AUTH_WINDOW_MS ?? 15 * 60 * 1000);
 const authMax = Number(process.env.RATE_LIMIT_AUTH_MAX ?? 20);
+const forgotPasswordWindowMs = Number(process.env.RATE_LIMIT_FORGOT_PASSWORD_WINDOW_MS ?? 15 * 60 * 1000);
+const forgotPasswordMax = Number(process.env.RATE_LIMIT_FORGOT_PASSWORD_MAX ?? 40);
 
 function skipHealthAndStripe(req: { path: string }): boolean {
   return (
@@ -46,5 +52,14 @@ export const authLimiter = rateLimit({
   max: authMax,
   message: { message: "Too many authentication attempts, please try again later." },
   store: authStore,
+  ...rateHeaders
+});
+
+/** Password recovery flow limit, separate from login/signup auth limits. */
+export const forgotPasswordLimiter = rateLimit({
+  windowMs: forgotPasswordWindowMs,
+  max: forgotPasswordMax,
+  message: { message: "Too many password reset attempts, please try again later." },
+  store: forgotPasswordStore,
   ...rateHeaders
 });

@@ -1,5 +1,5 @@
 import { SafeAreaView } from "react-native-safe-area-context";
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -7,14 +7,21 @@ import {
   TouchableOpacity, 
   TextInput, 
   ScrollView,
-  Dimensions,
   Platform,
-  KeyboardAvoidingView
+  KeyboardAvoidingView,
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 import { ChevronLeft, Eye, EyeOff, CheckCircle2, Circle } from 'lucide-react-native';
 import { Colors } from '../constants/theme';
 import { useNavigation } from '@react-navigation/native';
-const { width } = Dimensions.get('window');
+import { apiJson } from '../api/client';
+
+const SPECIAL_RE = /[!@#$%^&*(),.?":{}|<>]/;
+
+function newPasswordValid(pw: string): boolean {
+  return pw.length >= 8 && /\d/.test(pw) && SPECIAL_RE.test(pw);
+}
 
 export const SecurityScreen = () => {
   const navigation = useNavigation<any>();
@@ -24,6 +31,15 @@ export const SecurityScreen = () => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const canSave = useMemo(() => {
+    return (
+      currentPassword.length > 0 &&
+      newPasswordValid(newPassword) &&
+      newPassword === confirmPassword
+    );
+  }, [currentPassword, newPassword, confirmPassword]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -65,7 +81,9 @@ export const SecurityScreen = () => {
                   {showCurrent ? <Eye size={20} color="#999" /> : <EyeOff size={20} color="#999" />}
                 </TouchableOpacity>
               </View>
-              <TouchableOpacity><Text style={styles.forgotText}>Forgot Current Password?</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+                <Text style={styles.forgotText}>Forgot Current Password?</Text>
+              </TouchableOpacity>
             </View>
             {/* New Password */}
             <View style={styles.inputGroup}>
@@ -103,8 +121,8 @@ export const SecurityScreen = () => {
                     <Text style={[styles.validationText, /\d/.test(newPassword) && { color: Colors.primary }]}>1 number</Text>
                  </View>
                  <View style={styles.validationItem}>
-                    {/[!@#$%^&*(),.?":{}|<>]/.test(newPassword) ? <CheckCircle2 size={18} color="#426D45" /> : <Circle size={18} color="#999" />}
-                    <Text style={[styles.validationText, /[!@#$%^&*(),.?":{}|<>]/.test(newPassword) && { color: Colors.primary }]}>1 special character</Text>
+                    {SPECIAL_RE.test(newPassword) ? <CheckCircle2 size={18} color="#426D45" /> : <Circle size={18} color="#999" />}
+                    <Text style={[styles.validationText, SPECIAL_RE.test(newPassword) && { color: Colors.primary }]}>1 special character</Text>
                  </View>
               </View>
             </View>
@@ -134,11 +152,42 @@ export const SecurityScreen = () => {
             </View>
           </View>
           <TouchableOpacity 
-            style={[styles.saveButton, (newPassword === '' || newPassword !== confirmPassword) && { opacity: 0.5 }]}
-            onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main')}
-            disabled={newPassword === '' || newPassword !== confirmPassword}
+            style={[styles.saveButton, (!canSave || saving) && { opacity: 0.5 }]}
+            disabled={!canSave || saving}
+            onPress={async () => {
+              if (!canSave || saving) {
+                return;
+              }
+              setSaving(true);
+              try {
+                await apiJson<{ message?: string }>("/me/change-password", {
+                  method: "POST",
+                  body: JSON.stringify({
+                    currentPassword,
+                    newPassword
+                  })
+                });
+                Alert.alert("Success", "Your password has been updated.", [
+                  {
+                    text: "OK",
+                    onPress: () =>
+                      navigation.canGoBack() ? navigation.goBack() : navigation.navigate("Main")
+                  }
+                ]);
+              } catch (e: unknown) {
+                const msg =
+                  e && typeof e === "object" && "message" in e ? String((e as { message: string }).message) : "Could not update password";
+                Alert.alert("Change password", msg);
+              } finally {
+                setSaving(false);
+              }
+            }}
           >
-            <Text style={styles.saveButtonText}>Save</Text>
+            {saving ? (
+              <ActivityIndicator color="#FFF" />
+            ) : (
+              <Text style={styles.saveButtonText}>Save</Text>
+            )}
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>

@@ -21,9 +21,10 @@ export async function readEntitlements(userId: string) {
     };
   }
 
-  const activeStatuses = new Set(["active", "trialing"]);
+  /** Stripe statuses that should unlock premium app features */
+  const entitledStatuses = new Set(["active", "trialing", "past_due"]);
   const hasPro =
-    activeStatuses.has(subscription.status) &&
+    entitledStatuses.has(subscription.status) &&
     (!subscription.currentPeriodEnd || subscription.currentPeriodEnd.getTime() > Date.now());
 
   return {
@@ -69,9 +70,16 @@ billingRouter.post("/checkout-session", requireAuth, async (req: AuthedRequest, 
     return;
   }
 
-  const successUrl =
-    env.CHECKOUT_SUCCESS_URL ?? "https://example.com/billing/success?session_id={CHECKOUT_SESSION_ID}";
-  const cancelUrl = env.CHECKOUT_CANCEL_URL ?? "https://example.com/billing/cancel";
+  if (!env.CHECKOUT_SUCCESS_URL || !env.CHECKOUT_CANCEL_URL) {
+    res.status(503).json({
+      message:
+        "Checkout return URLs are not configured. Set CHECKOUT_SUCCESS_URL and CHECKOUT_CANCEL_URL in backend/.env (use app deep links, e.g. prochef://billing/success?session_id={CHECKOUT_SESSION_ID})."
+    });
+    return;
+  }
+
+  const successUrl = env.CHECKOUT_SUCCESS_URL;
+  const cancelUrl = env.CHECKOUT_CANCEL_URL;
 
   const userId = req.user!.id;
   const userEmail = req.user!.email;
@@ -120,6 +128,44 @@ billingRouter.post("/checkout-session", requireAuth, async (req: AuthedRequest, 
 });
 
 billingRouter.get("/entitlements", requireAuth, async (req: AuthedRequest, res) => {
+  res.json(await readEntitlements(req.user!.id));
+});
+
+/** Client calls this after redirect from Stripe with ?session_id= — syncs DB even if webhooks are delayed (local dev). */
+billingRouter.post("/checkout-verify", requireAuth, async (req: AuthedRequest, res) => {
+  if (!stripe) {
+    res.status(503).json({ message: "Stripe is not configured" });
+    return;
+  }
+  const sessionId = typeof req.body?.sessionId === "string" ? req.body.sessionId : "";
+  if (!sessionId.startsWith("cs_")) {
+    res.status(400).json({ message: "Missing or invalid sessionId" });
+    return;
+  }
+
+  const session = await stripe.checkout.sessions.retrieve(sessionId, {
+    expand: ["subscription"]
+  });
+
+  const sessionUserId = session.metadata?.userId ?? session.client_reference_id;
+  if (!sessionUserId || sessionUserId !== req.user!.id) {
+    res.status(403).json({ message: "Checkout session does not belong to this account" });
+    return;
+  }
+
+  const subRef = session.subscription;
+  const subId =
+    typeof subRef === "string"
+      ? subRef
+      : subRef && typeof subRef === "object" && "id" in subRef
+        ? (subRef as Stripe.Subscription).id
+        : null;
+
+  if (subId) {
+    const stripeSub = await stripe.subscriptions.retrieve(subId);
+    await syncSubscriptionFromStripe(stripeSub);
+  }
+
   res.json(await readEntitlements(req.user!.id));
 });
 

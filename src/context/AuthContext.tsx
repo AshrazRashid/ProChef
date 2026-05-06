@@ -2,6 +2,7 @@ import * as Linking from "expo-linking";
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { apiBaseUrl } from "../config";
 import { apiFetch, apiJson, clearTokens, getAccessToken, setTokens } from "../api/client";
+import { resetCheckoutNavigationGuards } from "../navigation/afterCheckoutToMain";
 
 export type AuthUser = {
   id: string;
@@ -37,7 +38,7 @@ type AuthCtx = {
   signUp: (email: string, password: string) => Promise<"Welcome" | "GoalSetup" | "PremiumAccess" | "Main">;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
-  refreshEntitlements: () => Promise<void>;
+  refreshEntitlements: () => Promise<Entitlements | null>;
   resolveInitialRoute: () => "Welcome" | "GoalSetup" | "PremiumAccess" | "Main";
 };
 
@@ -69,14 +70,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [entitlements, setEntitlements] = useState<Entitlements | null>(null);
 
-  const refreshEntitlements = useCallback(async () => {
+  const refreshEntitlements = useCallback(async (): Promise<Entitlements | null> => {
     const token = await getAccessToken();
     if (!token) {
       setEntitlements(null);
-      return;
+      return null;
     }
-    const e = await fetchEntitlements(token);
-    setEntitlements(e ?? { hasPro: false, planCode: null, status: "error", currentPeriodEnd: null });
+    try {
+      const e = await fetchEntitlements(token);
+      const next = e ?? { hasPro: false, planCode: null, status: "error", currentPeriodEnd: null };
+      setEntitlements(next);
+      return next;
+    } catch {
+      const fallback = { hasPro: false, planCode: null, status: "error", currentPeriodEnd: null };
+      setEntitlements(fallback);
+      return fallback;
+    }
   }, []);
 
   const refreshUser = useCallback(async () => {
@@ -85,37 +94,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       return;
     }
-    const u = await fetchMe(token);
-    setUser(u);
+    try {
+      const u = await fetchMe(token);
+      setUser(u);
+    } catch {
+      setUser(null);
+    }
   }, []);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const token = await getAccessToken();
-      if (cancelled) {
-        return;
-      }
-      setAccessTokenState(token);
-      if (token) {
-        const [u, e] = await Promise.all([fetchMe(token), fetchEntitlements(token)]);
-        if (!cancelled) {
-          if (!u) {
-            await clearTokens();
-            setAccessTokenState(null);
-            setUser(null);
-            setEntitlements(null);
-          } else {
-            setUser(u);
-            setEntitlements(e ?? { hasPro: false, planCode: null, status: "none", currentPeriodEnd: null });
-          }
+      try {
+        const token = await getAccessToken();
+        if (cancelled) {
+          return;
         }
-      } else if (!cancelled) {
-        setUser(null);
-        setEntitlements(null);
-      }
-      if (!cancelled) {
-        setBootstrapped(true);
+        setAccessTokenState(token);
+        if (token) {
+          const [u, e] = await Promise.all([fetchMe(token), fetchEntitlements(token)]);
+          if (!cancelled) {
+            if (!u) {
+              await clearTokens();
+              setAccessTokenState(null);
+              setUser(null);
+              setEntitlements(null);
+            } else {
+              setUser(u);
+              setEntitlements(e ?? { hasPro: false, planCode: null, status: "none", currentPeriodEnd: null });
+            }
+          }
+        } else if (!cancelled) {
+          setUser(null);
+          setEntitlements(null);
+        }
+      } catch {
+        if (!cancelled) {
+          await clearTokens();
+          setAccessTokenState(null);
+          setUser(null);
+          setEntitlements(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setBootstrapped(true);
+        }
       }
     })();
     return () => {
@@ -124,9 +147,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const sub = Linking.addEventListener("url", () => {
-      void refreshEntitlements();
-      void refreshUser();
+    const handleUrl = (url: string | null) => {
+      if (!url) {
+        return;
+      }
+      const parsed = Linking.parse(url);
+      const path = parsed.path ?? "";
+      if (path.includes("billing/success") || path.includes("billing/cancel")) {
+        void refreshEntitlements();
+        void refreshUser();
+      }
+    };
+
+    void Linking.getInitialURL().then(handleUrl);
+
+    const sub = Linking.addEventListener("url", (event) => {
+      handleUrl(event.url);
     });
     return () => sub.remove();
   }, [refreshEntitlements, refreshUser]);
@@ -182,10 +218,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    await clearTokens();
-    setAccessTokenState(null);
-    setUser(null);
-    setEntitlements(null);
+    try {
+      await apiFetch("/auth/logout", { method: "POST" });
+    } catch {
+      // Still clear local session if the network fails or the token is already invalid.
+    } finally {
+      resetCheckoutNavigationGuards();
+      await clearTokens();
+      setAccessTokenState(null);
+      setUser(null);
+      setEntitlements(null);
+    }
   }, []);
 
   const hasPro = Boolean(entitlements?.hasPro);

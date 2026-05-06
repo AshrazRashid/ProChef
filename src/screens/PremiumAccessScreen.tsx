@@ -1,5 +1,5 @@
-import { SafeAreaView } from "react-native-safe-area-context";
-import React, { useState } from 'react';
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -10,8 +10,12 @@ import {
   Dimensions,
   ActivityIndicator,
   Alert,
-  Linking
+  Linking,
+  AppState,
+  type AppStateStatus
 } from 'react-native';
+import { CommonActions } from "@react-navigation/native";
+import { beginCheckoutReturnNavigation, navigateToMainAfterCheckout } from "../navigation/afterCheckoutToMain";
 import { X, CheckCircle2, ShieldCheck, CalendarRange, Star } from 'lucide-react-native';
 import { Colors } from '../constants/theme';
 import { apiJson } from '../api/client';
@@ -19,9 +23,79 @@ import { useAuth } from '../context/AuthContext';
 const { width } = Dimensions.get('window');
 
 export const PremiumAccessScreen = ({ navigation }: any) => {
-  const { refreshEntitlements } = useAuth();
+  const insets = useSafeAreaInsets();
+  const { refreshEntitlements, refreshUser, signOut } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const pollUntilRef = useRef<number | null>(null);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+  /** Last Stripe Checkout session — used to sync subscription when the user returns without a deep link (e.g. app switcher). */
+  const pendingCheckoutSessionIdRef = useRef<string | null>(null);
+
+  const clearCheckoutPoll = () => {
+    if (pollUntilRef.current !== null) {
+      clearInterval(pollUntilRef.current);
+      pollUntilRef.current = null;
+    }
+  };
+
+  const verifyPendingCheckoutSession = useCallback(async () => {
+    const sid = pendingCheckoutSessionIdRef.current;
+    if (!sid || !sid.startsWith("cs_")) {
+      return;
+    }
+    try {
+      await apiJson("/billing/checkout-verify", {
+        method: "POST",
+        body: JSON.stringify({ sessionId: sid })
+      });
+    } catch {
+      /* entitlements polling still runs below */
+    }
+  }, []);
+
+  const tryNavigateToMainIfPro = useCallback(async (): Promise<boolean> => {
+    await verifyPendingCheckoutSession();
+    await refreshUser();
+    const ent = await refreshEntitlements();
+    if (ent?.hasPro) {
+      pendingCheckoutSessionIdRef.current = null;
+      clearCheckoutPoll();
+      navigateToMainAfterCheckout(navigation);
+      return true;
+    }
+    return false;
+  }, [navigation, refreshEntitlements, refreshUser, verifyPendingCheckoutSession]);
+
+  const startCheckoutPolling = useCallback(() => {
+    clearCheckoutPoll();
+    const deadline = Date.now() + 120_000;
+    pollUntilRef.current = setInterval(() => {
+      void (async () => {
+        if (Date.now() > deadline) {
+          clearCheckoutPoll();
+          return;
+        }
+        await tryNavigateToMainIfPro();
+      })();
+    }, 2500);
+  }, [tryNavigateToMainIfPro]);
+
+  useEffect(() => {
+    return () => clearCheckoutPoll();
+  }, []);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (next) => {
+      const prev = appStateRef.current;
+      appStateRef.current = next;
+      if (prev.match(/inactive|background/) && next === "active" && pollUntilRef.current !== null) {
+        void tryNavigateToMainIfPro();
+      }
+    });
+    return () => sub.remove();
+  }, [tryNavigateToMainIfPro]);
+
   const features = [
     { title: 'Unlimited AI Scans', desc: 'Instant nutritional data for any dish.' },
     { title: 'Advanced AI Meal Plans', desc: 'Evolving plans that learn your tastes.' },
@@ -35,14 +109,19 @@ export const PremiumAccessScreen = ({ navigation }: any) => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => (navigation.canGoBack() ? navigation.goBack() : undefined)}
+          onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate("Main"))}
           style={styles.closeButton}
         >
           <X color={Colors.white} size={24} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Premium Access</Text>
       </View>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Hero Section */}
         <View style={styles.hero}>
            <View style={styles.invitationBadge}>
@@ -120,26 +199,35 @@ export const PremiumAccessScreen = ({ navigation }: any) => {
            <Star color={Colors.white} size={16} fill={Colors.white} />
            <Text style={styles.ratingText}>4.9/5 USER RATING</Text>
         </View>
-        {/* Action Button */}
+      </ScrollView>
+      <View style={[styles.footer, { paddingBottom: Math.max(16, insets.bottom + 12) }]}>
         <TouchableOpacity 
           style={styles.primaryButton}
           disabled={checkoutLoading}
           onPress={async () => {
             setCheckoutLoading(true);
             try {
-              const res = await apiJson<{ checkoutUrl: string | null }>("/billing/checkout-session", {
-                method: "POST",
-                body: JSON.stringify({ plan: selectedPlan })
-              });
+              const res = await apiJson<{ checkoutUrl: string | null; sessionId?: string }>(
+                "/billing/checkout-session",
+                {
+                  method: "POST",
+                  body: JSON.stringify({ plan: selectedPlan })
+                }
+              );
               if (!res.checkoutUrl) {
                 Alert.alert("Billing", "No checkout URL returned.");
                 return;
               }
+              if (typeof res.sessionId === "string" && res.sessionId.startsWith("cs_")) {
+                pendingCheckoutSessionIdRef.current = res.sessionId;
+              }
+              beginCheckoutReturnNavigation();
               const can = await Linking.canOpenURL(res.checkoutUrl);
               if (can) {
                 await Linking.openURL(res.checkoutUrl);
               }
-              await refreshEntitlements();
+              startCheckoutPolling();
+              void tryNavigateToMainIfPro();
             } catch (e: unknown) {
               const msg =
                 e && typeof e === "object" && "message" in e ? String((e as { message: string }).message) : "Checkout failed";
@@ -155,7 +243,21 @@ export const PremiumAccessScreen = ({ navigation }: any) => {
             <Text style={styles.primaryButtonText}>Subscribe with Stripe</Text>
           )}
         </TouchableOpacity>
-      </ScrollView>
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={async () => {
+            await signOut();
+            navigation.dispatch(
+              CommonActions.reset({
+                index: 0,
+                routes: [{ name: "Welcome" }]
+              })
+            );
+          }}
+        >
+          <Text style={styles.logoutButtonText}>Log out</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 };
@@ -179,9 +281,19 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-SemiBold',
     marginLeft: 10,
   },
+  scroll: {
+    flex: 1,
+  },
   scrollContent: {
     paddingHorizontal: 24,
-    paddingBottom: 40,
+    paddingBottom: 24,
+  },
+  footer: {
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "#0D0D0D",
   },
   hero: {
     alignItems: 'center',
@@ -371,6 +483,21 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     color: Colors.white,
     fontSize: 18,
+    fontFamily: 'Inter-SemiBold',
+  },
+  logoutButton: {
+    marginTop: 14,
+    height: 52,
+    borderRadius: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  logoutButtonText: {
+    color: '#E57373',
+    fontSize: 16,
     fontFamily: 'Inter-SemiBold',
   },
 });

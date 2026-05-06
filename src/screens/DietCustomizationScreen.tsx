@@ -12,6 +12,7 @@ import {
   Alert
 } from 'react-native';
 import { ChevronLeft } from 'lucide-react-native';
+import { CommonActions } from "@react-navigation/native";
 import { Colors } from '../constants/theme';
 import { useOnboarding } from '../context/OnboardingContext';
 import { useAuth } from '../context/AuthContext';
@@ -20,7 +21,7 @@ const { width } = Dimensions.get('window');
 
 export const DietCustomizationScreen = ({ navigation }: any) => {
   const { draft } = useOnboarding();
-  const { refreshUser } = useAuth();
+  const { refreshUser, refreshEntitlements } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [selectedGoals, setSelectedGoals] = useState<string[]>(['high_protein']);
 
@@ -41,8 +42,13 @@ export const DietCustomizationScreen = ({ navigation }: any) => {
           dietType
         })
       });
-      await refreshUser();
-      navigation.navigate("PremiumAccess");
+      await Promise.all([refreshUser(), refreshEntitlements()]);
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: "Main" }]
+        })
+      );
     } catch (e: unknown) {
       const msg = e && typeof e === "object" && "message" in e ? String((e as { message: string }).message) : "Could not save plan";
       Alert.alert("Plan error", msg);
