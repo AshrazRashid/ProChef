@@ -10,7 +10,7 @@ import {
   Dimensions
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { LayoutDashboard, Utensils, Scan, ChevronRight } from 'lucide-react-native';
+import { LayoutDashboard, Utensils, Scan, ChevronRight, Package } from 'lucide-react-native';
 import { Colors } from '../constants/theme';
 import { apiJson } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -110,6 +110,14 @@ export const DashboardScreen = ({ navigation }: any) => {
         </TouchableOpacity>
       </View>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <TouchableOpacity style={styles.pantryBanner} onPress={() => navigation.navigate("Pantry")} activeOpacity={0.85}>
+          <Package size={22} color={Colors.primary} strokeWidth={2} />
+          <View style={styles.pantryBannerText}>
+            <Text style={styles.pantryBannerTitle}>Pantry inventory</Text>
+            <Text style={styles.pantryBannerSub}>Add, edit, or remove what you keep in stock</Text>
+          </View>
+          <ChevronRight size={20} color="#BBB" style={{ marginLeft: 8 }} />
+        </TouchableOpacity>
         <Text style={styles.todayTitle}>Today's Intake</Text>
         <Text style={styles.todaySub}>You're maintaining a steady kinetic rhythm.</Text>
         {/* Calorie Donut */}
@@ -213,6 +221,19 @@ const styles = StyleSheet.create({
   headerTitle: { color: Colors.primary, fontSize: 18, fontFamily: 'Inter-Bold' },
   avatar: { width: 36, height: 36, borderRadius: 18 },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 120 },
+  pantryBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    padding: 16,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#EEE'
+  },
+  pantryBannerText: { flex: 1, marginLeft: 12 },
+  pantryBannerTitle: { fontSize: 15, color: Colors.primary, fontFamily: 'Inter-Bold' },
+  pantryBannerSub: { fontSize: 12, color: '#888', fontFamily: 'Inter-Regular', marginTop: 2 },
   todayTitle: { fontSize: 20, color: '#1A1A1A', fontFamily: 'Inter-Bold', marginTop: 24 },
   todaySub: { fontSize: 13, color: '#999', fontFamily: 'Inter-Regular', marginTop: 4, marginBottom: 24 },
   donutCard: { backgroundColor: '#FFF', borderRadius: 40, padding: 32, alignItems: 'center', borderWidth: 1, borderColor: '#EEE' },

@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { CommonActions } from "@react-navigation/native";
 import { beginCheckoutReturnNavigation, navigateToMainAfterCheckout } from "../navigation/afterCheckoutToMain";
-import { X, CheckCircle2, ShieldCheck, CalendarRange, Star } from 'lucide-react-native';
+import { X, CheckCircle2, ShieldCheck, CalendarRange, Star, Package } from 'lucide-react-native';
 import { Colors } from '../constants/theme';
 import { apiJson } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -27,7 +27,7 @@ export const PremiumAccessScreen = ({ navigation }: any) => {
   const { refreshEntitlements, refreshUser, signOut } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
   const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const pollUntilRef = useRef<number | null>(null);
+  const pollUntilRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
   /** Last Stripe Checkout session — used to sync subscription when the user returns without a deep link (e.g. app switcher). */
   const pendingCheckoutSessionIdRef = useRef<string | null>(null);
@@ -242,6 +242,14 @@ export const PremiumAccessScreen = ({ navigation }: any) => {
           ) : (
             <Text style={styles.primaryButtonText}>Subscribe with Stripe</Text>
           )}
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.pantryOutlineButton}
+          onPress={() => navigation.navigate("Pantry")}
+          activeOpacity={0.85}
+        >
+          <Package color={Colors.secondary} size={20} strokeWidth={2} />
+          <Text style={styles.pantryOutlineButtonText}>Manage pantry (no subscription)</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.logoutButton}
@@ -484,6 +492,24 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 18,
     fontFamily: 'Inter-SemiBold',
+  },
+  pantryOutlineButton: {
+    marginTop: 12,
+    minHeight: 52,
+    borderRadius: 26,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: "rgba(129, 199, 132, 0.55)",
+    backgroundColor: "rgba(129, 199, 132, 0.08)"
+  },
+  pantryOutlineButtonText: {
+    color: Colors.secondary,
+    fontSize: 15,
+    fontFamily: "Inter-SemiBold",
+    marginLeft: 10
   },
   logoutButton: {
     marginTop: 14,

@@ -10,7 +10,7 @@ import {
   Dimensions
 } from 'react-native';
 import { GestureHandlerRootView, TouchableOpacity } from 'react-native-gesture-handler';
-import { ChevronLeft, Edit3, Target, Calculator, Sliders, Calendar, Utensils, ChefHat, Bell, Zap, Key, FileText, Shield, LogOut } from 'lucide-react-native';
+import { ChevronLeft, Edit3, Target, Calculator, Sliders, Calendar, Utensils, ChefHat, Bell, Zap, Key, FileText, Shield, LogOut, Package } from 'lucide-react-native';
 import { Colors } from '../constants/theme';
 import { CommonActions, useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
@@ -112,6 +112,14 @@ export const ProfileScreen = () => {
                 <Text style={styles.libText}>Saved Recipes</Text>
              </TouchableOpacity>
           </View>
+          <TouchableOpacity style={styles.libWideCard} onPress={() => navigation.navigate("Pantry")}>
+             <View style={styles.libIconCircle}><Package size={24} color="#426D45" /></View>
+             <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text style={styles.libText}>Pantry inventory</Text>
+                <Text style={styles.libWideSub}>Manage what you have in stock</Text>
+             </View>
+             <ChevronLeft size={20} color="#CCC" style={{ transform: [{ rotate: '180deg'}] }} />
+          </TouchableOpacity>
           <View style={styles.sectionHeader}>
              <Text style={styles.sectionTitle}>Smart Features</Text>
           </View>
@@ -240,7 +248,19 @@ const styles = StyleSheet.create({
   chipsRow: { flexDirection: 'row', marginBottom: 32 },
   chip: { backgroundColor: '#E8F5E9', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, marginRight: 10 },
   chipText: { color: '#426D45', fontSize: 10, fontFamily: 'Inter-Bold' },
-  libraryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 32 },
+  libraryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
+  libWideCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    borderRadius: 24,
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: '#EEE'
+  },
+  libWideSub: { fontSize: 11, color: '#999', fontFamily: 'Inter-Regular', marginTop: 4 },
   libCard: { width: (width - 60) / 2, backgroundColor: '#FFF', paddingVertical: 24, alignItems: 'center', borderRadius: 24, borderWidth: 1, borderColor: '#EEE' },
   libIconCircle: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#F9F9F9', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
   libText: { fontSize: 12, color: Colors.primary, fontFamily: 'Inter-Bold' },

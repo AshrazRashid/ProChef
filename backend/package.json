@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
   "scripts": {
     "dev": "tsx watch src/main.ts",
     "build": "tsc -p tsconfig.json",
@@ -10,6 +13,7 @@
     "worker": "tsx src/jobs/worker.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "prisma db seed",
     "prisma:studio": "prisma studio",
     "loadtest": "sh -c 'autocannon -c 20 -d 15 --connectionRetry false \"${LOADTEST_URL:-http://127.0.0.1:4000}/health\"'",
     "loadtest:k6": "k6 run load/k6-smoke.js"

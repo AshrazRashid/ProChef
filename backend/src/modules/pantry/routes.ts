@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../../common/db.js";
-import { AuthedRequest, requireAuth, requireProEntitlement } from "../../common/middleware.js";
+import { AuthedRequest, requireAuth } from "../../common/middleware.js";
 
 const pantryItemSchema = z.object({
   ingredientId: z.string().uuid(),
@@ -11,7 +11,23 @@ const pantryItemSchema = z.object({
 });
 
 export const pantryRouter = Router();
-pantryRouter.use(requireAuth, requireProEntitlement);
+pantryRouter.use(requireAuth);
+
+/** Autocomplete for manual pantry adds (Phase 1). */
+pantryRouter.get("/ingredients", async (req: AuthedRequest, res) => {
+  const raw = typeof req.query.q === "string" ? req.query.q.trim() : "";
+  if (raw.length < 2) {
+    res.json({ items: [] as { id: string; name: string; category: string; defaultUnit: string }[] });
+    return;
+  }
+  const items = await prisma.ingredient.findMany({
+    where: { name: { contains: raw, mode: "insensitive" } },
+    take: 40,
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, category: true, defaultUnit: true }
+  });
+  res.json({ items });
+});
 
 pantryRouter.get("/items", async (req: AuthedRequest, res) => {
   const items = await prisma.pantryItem.findMany({

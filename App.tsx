@@ -42,6 +42,7 @@ import { MealRecommendationsScreen } from "./src/screens/MealRecommendationsScre
 import { ExpirationAlertScreen } from "./src/screens/ExpirationAlertScreen";
 import { MealPlannerScreen } from "./src/screens/MealPlannerScreen";
 import { DashboardScreen } from "./src/screens/DashboardScreen";
+import { PantryScreen } from "./src/screens/PantryScreen";
 import { ProfileScreen } from "./src/screens/ProfileScreen";
 import { EditProfileScreen } from "./src/screens/EditProfileScreen";
 import { SecurityScreen } from "./src/screens/SecurityScreen";
@@ -166,6 +167,7 @@ function RootNavigator() {
         <Stack.Screen name="CustomMeal" component={CustomMealScreen} />
         <Stack.Screen name="ShoppingList" component={ShoppingListScreen} />
         <Stack.Screen name="ExpirationAlert" component={ExpirationAlertScreen} />
+        <Stack.Screen name="Pantry" component={PantryScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="EditProfile" component={EditProfileScreen} />
         <Stack.Screen name="Security" component={SecurityScreen} />
