@@ -20,13 +20,35 @@ const s3Client = new S3Client({
 
 const extensionByContentType: Record<string, string> = {
   "image/jpeg": "jpg",
+  "image/jpg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
   "image/heic": "heic"
 };
 
+/** Content types allowed for pantry scan uploads (presigned PUT must match). */
+export const SCAN_IMAGE_CONTENT_TYPES = new Set(Object.keys(extensionByContentType));
+
+export function isAllowedScanImageContentType(contentType: string) {
+  return SCAN_IMAGE_CONTENT_TYPES.has(contentType.toLowerCase());
+}
+
 function getExtension(contentType: string) {
   return extensionByContentType[contentType.toLowerCase()] ?? "jpg";
+}
+
+/**
+ * Ensures `objectKey` is a scan object under this user (prevents queueing another user's key).
+ */
+export function assertOwnedScanObjectKey(userId: string, objectKey: string) {
+  const prefix = `scans/${userId}/`;
+  if (!objectKey.startsWith(prefix)) {
+    throw new Error("object_key_must_be_under_user_scan_prefix");
+  }
+  const remainder = objectKey.slice(prefix.length);
+  if (!remainder || remainder.includes("/") || remainder.includes("..")) {
+    throw new Error("invalid_scan_object_key");
+  }
 }
 
 export function buildScanObjectKey(userId: string, contentType: string) {
@@ -65,5 +87,33 @@ export async function objectExists(objectKey: string) {
     return true;
   } catch {
     return false;
+  }
+}
+
+/**
+ * After a client PUT, S3 may briefly lag before HEAD succeeds. Used when queueing a scan.
+ */
+export async function objectExistsWithRetry(
+  objectKey: string,
+  options?: { attempts?: number; baseDelayMs?: number }
+) {
+  const attempts = Math.max(1, options?.attempts ?? 8);
+  const baseDelayMs = Math.max(10, options?.baseDelayMs ?? 120);
+  for (let i = 0; i < attempts; i++) {
+    if (await objectExists(objectKey)) {
+      return true;
+    }
+    if (i < attempts - 1) {
+      await new Promise((r) => setTimeout(r, baseDelayMs * Math.pow(1.4, i)));
+    }
+  }
+  return false;
+}
+
+/** Throws if the object is not readable in the bucket (worker-side gate). */
+export async function assertScanObjectReadable(objectKey: string) {
+  const ok = await objectExistsWithRetry(objectKey, { attempts: 4, baseDelayMs: 200 });
+  if (!ok) {
+    throw new Error(`scan_image_not_found:${objectKey}`);
   }
 }

@@ -1,4 +1,5 @@
 import { prisma } from "../../common/db.js";
+import { assertScanObjectReadable } from "../../common/s3.js";
 
 type DetectionSeed = {
   ingredientName: string;
@@ -39,6 +40,8 @@ export async function processScanSession(scanSessionId: string) {
   if (!scanSession) {
     throw new Error(`Scan session ${scanSessionId} not found`);
   }
+
+  await assertScanObjectReadable(scanSession.imageUrl);
 
   const pickedDetections = pickDetections(scanSessionId);
 

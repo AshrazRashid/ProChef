@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "tsx watch src/main.ts",
+    "dev:all": "concurrently -k -n api,worker -c blue,magenta \"npm run dev\" \"npm run worker\"",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main.js",
     "worker": "tsx src/jobs/worker.ts",
@@ -37,6 +38,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "concurrently": "^9.1.2",
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",

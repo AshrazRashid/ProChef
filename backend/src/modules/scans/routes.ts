@@ -2,7 +2,13 @@ import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../../common/db.js";
 import { AuthedRequest, requireAuth, requireProEntitlement } from "../../common/middleware.js";
-import { buildScanObjectKey, createScanUploadUrl, objectExists } from "../../common/s3.js";
+import {
+  assertOwnedScanObjectKey,
+  buildScanObjectKey,
+  createScanUploadUrl,
+  isAllowedScanImageContentType,
+  objectExistsWithRetry
+} from "../../common/s3.js";
 import { scanQueue } from "../../jobs/queues.js";
 
 const uploadUrlSchema = z.object({
@@ -13,10 +19,15 @@ const createScanSchema = z.union([
   z.object({
     scanSessionId: z.string().uuid()
   }),
-  z.object({
-    objectKey: z.string().min(1),
-    contentType: z.string().min(1)
-  })
+  z
+    .object({
+      objectKey: z.string().min(1),
+      contentType: z.string().min(1)
+    })
+    .refine((d) => isAllowedScanImageContentType(d.contentType), {
+      path: ["contentType"],
+      message: "Unsupported image content type for scan upload"
+    })
 ]);
 
 export const scansRouter = Router();
@@ -26,6 +37,11 @@ scansRouter.post("/upload-url", async (req: AuthedRequest, res) => {
   const parse = uploadUrlSchema.safeParse(req.body);
   if (!parse.success) {
     res.status(400).json({ message: "Invalid payload", errors: parse.error.flatten() });
+    return;
+  }
+
+  if (!isAllowedScanImageContentType(parse.data.contentType)) {
+    res.status(400).json({ message: "Unsupported image content type for scan upload" });
     return;
   }
 
@@ -57,21 +73,29 @@ scansRouter.post("/", async (req: AuthedRequest, res) => {
     return;
   }
 
-  const scan =
-    "scanSessionId" in parse.data
-      ? await prisma.scanSession.findFirst({
-          where: {
-            id: parse.data.scanSessionId,
-            userId: req.user!.id
-          }
-        })
-      : await prisma.scanSession.create({
-          data: {
-            userId: req.user!.id,
-            imageUrl: parse.data.objectKey,
-            status: "uploading"
-          }
-        });
+  let scan;
+  if ("scanSessionId" in parse.data) {
+    scan = await prisma.scanSession.findFirst({
+      where: {
+        id: parse.data.scanSessionId,
+        userId: req.user!.id
+      }
+    });
+  } else {
+    try {
+      assertOwnedScanObjectKey(req.user!.id, parse.data.objectKey);
+    } catch {
+      res.status(400).json({ message: "Invalid scan object key" });
+      return;
+    }
+    scan = await prisma.scanSession.create({
+      data: {
+        userId: req.user!.id,
+        imageUrl: parse.data.objectKey,
+        status: "uploading"
+      }
+    });
+  }
 
   if (!scan) {
     res.status(404).json({ message: "Scan session not found" });
@@ -88,7 +112,7 @@ scansRouter.post("/", async (req: AuthedRequest, res) => {
     return;
   }
 
-  const uploaded = await objectExists(scan.imageUrl);
+  const uploaded = await objectExistsWithRetry(scan.imageUrl);
   if (!uploaded) {
     res.status(400).json({ message: "Image has not been uploaded to S3 yet" });
     return;
