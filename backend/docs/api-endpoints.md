@@ -233,7 +233,9 @@ Single reference document for all currently implemented backend endpoints.
   "created": 2
 }
 ```
+- Response `400`: no detections to confirm
 - Response `404`: scan not found
+- Response `409`: scan not `completed` yet
 
 ### Scan Status Values
 - `uploading`
@@ -367,6 +369,12 @@ Single reference document for all currently implemented backend endpoints.
 ### `GET /shopping-lists/current`
 - Auth: Yes
 - Response `200`: latest shopping list with `items` (or `null`)
+
+### `PATCH /shopping-lists/items/:itemId`
+- Auth: Yes
+- Body: `{ "checked": true }`
+- Response `200`: updated item with `ingredient`
+- Response `404`: item not found on user's active list
 
 ### `POST /shopping-lists/generate`
 - Auth: Yes

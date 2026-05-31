@@ -8,6 +8,10 @@ const generateShoppingListSchema = z.object({
   subtractPantry: z.boolean().optional()
 });
 
+const patchItemSchema = z.object({
+  checked: z.boolean()
+});
+
 export const shoppingRouter = Router();
 shoppingRouter.use(requireAuth);
 
@@ -150,4 +154,30 @@ shoppingRouter.post("/generate", async (req: AuthedRequest, res) => {
   });
 
   res.status(201).json(list);
+});
+
+shoppingRouter.patch("/items/:itemId", async (req: AuthedRequest, res) => {
+  const parse = patchItemSchema.safeParse(req.body);
+  if (!parse.success) {
+    res.status(400).json({ message: "Invalid payload", errors: parse.error.flatten() });
+    return;
+  }
+
+  const existing = await prisma.shoppingListItem.findFirst({
+    where: {
+      id: req.params.itemId,
+      shoppingList: { userId: req.user!.id, status: "active" }
+    }
+  });
+  if (!existing) {
+    res.status(404).json({ message: "Shopping list item not found" });
+    return;
+  }
+
+  const item = await prisma.shoppingListItem.update({
+    where: { id: existing.id },
+    data: { checked: parse.data.checked },
+    include: { ingredient: true }
+  });
+  res.json(item);
 });

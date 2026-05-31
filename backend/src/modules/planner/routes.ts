@@ -92,7 +92,12 @@ plannerRouter.post("/", async (req: AuthedRequest, res) => {
 plannerRouter.get("/current", async (req: AuthedRequest, res) => {
   const plan = await prisma.mealPlan.findFirst({
     where: { userId: req.user!.id },
-    include: { slots: true },
+    include: {
+      slots: {
+        include: { recipe: true },
+        orderBy: [{ date: "asc" }, { slotType: "asc" }]
+      }
+    },
     orderBy: { weekStartDate: "desc" }
   });
   res.json(plan);

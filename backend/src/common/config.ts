@@ -15,7 +15,9 @@ const envSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(16),
   JWT_ACCESS_EXPIRES_IN: z.string().default("15m"),
   JWT_REFRESH_EXPIRES_IN: z.string().default("30d"),
-  S3_REGION: z.string().default("us-east-1"),
+  S3_REGION: z.string().optional(),
+  /** Legacy alias; prefer S3_REGION for scan/progress uploads. */
+  AWS_REGION: z.string().optional(),
   S3_BUCKET: z.string().default("prochef-scans"),
   S3_ENDPOINT: z.string().optional(),
   S3_ACCESS_KEY_ID: z.string().optional(),
@@ -33,4 +35,9 @@ const envSchema = z.object({
   CHECKOUT_CANCEL_URL: z.string().min(1).optional()
 });
 
-export const env = envSchema.parse(process.env);
+const parsed = envSchema.parse(process.env);
+
+export const env = {
+  ...parsed,
+  S3_REGION: parsed.S3_REGION ?? parsed.AWS_REGION ?? "us-east-1"
+};

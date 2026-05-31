@@ -22,11 +22,32 @@ import { apiJson } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 const { width } = Dimensions.get('window');
 
+type BillingPlan = {
+  code: string;
+  amountCents: number;
+  currency: string;
+  interval: string;
+};
+
+function formatPlanPrice(amountCents: number): string {
+  return `$${(amountCents / 100).toFixed(2)}`;
+}
+
+function savingsPercent(monthlyCents: number, yearlyCents: number): number | null {
+  if (monthlyCents <= 0) return null;
+  const yearlyEquivalent = monthlyCents * 12;
+  if (yearlyEquivalent <= yearlyCents) return null;
+  return Math.round(((yearlyEquivalent - yearlyCents) / yearlyEquivalent) * 100);
+}
+
 export const PremiumAccessScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
   const { refreshEntitlements, refreshUser, signOut } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [monthlyPrice, setMonthlyPrice] = useState('$7.99');
+  const [yearlyPrice, setYearlyPrice] = useState('$54.99');
+  const [yearlySavings, setYearlySavings] = useState<number | null>(42);
   const pollUntilRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
   /** Last Stripe Checkout session — used to sync subscription when the user returns without a deep link (e.g. app switcher). */
@@ -83,6 +104,23 @@ export const PremiumAccessScreen = ({ navigation }: any) => {
 
   useEffect(() => {
     return () => clearCheckoutPoll();
+  }, []);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const res = await apiJson<{ plans: BillingPlan[] }>("/billing/plans", { method: "GET" });
+        const monthly = res.plans?.find((p) => p.interval === "month");
+        const yearly = res.plans?.find((p) => p.interval === "year");
+        if (monthly) setMonthlyPrice(formatPlanPrice(monthly.amountCents));
+        if (yearly) setYearlyPrice(formatPlanPrice(yearly.amountCents));
+        if (monthly && yearly) {
+          setYearlySavings(savingsPercent(monthly.amountCents, yearly.amountCents));
+        }
+      } catch {
+        /* keep fallback prices */
+      }
+    })();
   }, []);
 
   useEffect(() => {
@@ -143,7 +181,7 @@ export const PremiumAccessScreen = ({ navigation }: any) => {
           >
             <Text style={styles.planType}>MONTHLY</Text>
             <View style={styles.priceRow}>
-               <Text style={styles.price}>$7.99</Text>
+               <Text style={styles.price}>{monthlyPrice}</Text>
                <Text style={styles.pricePeriod}>/mo</Text>
             </View>
             <Text style={styles.planDesc}>Flexible month-to-month access to all premium features.</Text>
@@ -160,11 +198,13 @@ export const PremiumAccessScreen = ({ navigation }: any) => {
                  <Text style={styles.bestValueText}>BEST VALUE</Text>
               </View>
               <View style={styles.saveBadge}>
-                 <Text style={styles.saveText}>SAVE 42%</Text>
+                 <Text style={styles.saveText}>
+                   {yearlySavings != null ? `SAVE ${yearlySavings}%` : "BEST VALUE"}
+                 </Text>
               </View>
             </View>
             <View style={styles.priceRow}>
-               <Text style={styles.price}>$54.99</Text>
+               <Text style={styles.price}>{yearlyPrice}</Text>
                <Text style={styles.pricePeriod}>/year</Text>
             </View>
             <Text style={styles.planDesc}>Our most popular choice for long-term health transformation.</Text>

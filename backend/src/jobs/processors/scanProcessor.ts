@@ -1,33 +1,35 @@
 import { prisma } from "../../common/db.js";
 import { assertScanObjectReadable } from "../../common/s3.js";
 
-type DetectionSeed = {
-  ingredientName: string;
-  category: string;
-  defaultUnit: string;
-  confidence: number;
-  rawLabel: string;
-};
+/** Deterministic stub vision: pick 2–3 catalog ingredients per scan (replace with real model later). */
+async function pickCatalogDetections(scanSessionId: string) {
+  const catalog = await prisma.ingredient.findMany({
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, category: true }
+  });
+  if (catalog.length === 0) {
+    throw new Error("ingredient_catalog_empty_run_prisma_seed");
+  }
 
-const seedDetections: DetectionSeed[] = [
-  { ingredientName: "Tomato", category: "vegetable", defaultUnit: "unit", confidence: 0.91, rawLabel: "tomato" },
-  { ingredientName: "Onion", category: "vegetable", defaultUnit: "unit", confidence: 0.86, rawLabel: "onion" },
-  { ingredientName: "Egg", category: "protein", defaultUnit: "unit", confidence: 0.89, rawLabel: "egg" },
-  {
-    ingredientName: "Spinach",
-    category: "vegetable",
-    defaultUnit: "gram",
-    confidence: 0.83,
-    rawLabel: "spinach"
-  },
-  { ingredientName: "Salmon", category: "protein", defaultUnit: "gram", confidence: 0.81, rawLabel: "salmon" }
-];
-
-function pickDetections(scanSessionId: string) {
   const hash = Array.from(scanSessionId).reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
-  const first = hash % seedDetections.length;
-  const second = (first + 2) % seedDetections.length;
-  return [seedDetections[first], seedDetections[second]];
+  const count = 2 + (hash % 2);
+  const picked: typeof catalog = [];
+  const seen = new Set<string>();
+
+  for (let i = 0; i < catalog.length && picked.length < count; i++) {
+    const row = catalog[(hash + i * 11) % catalog.length]!;
+    if (seen.has(row.id)) {
+      continue;
+    }
+    seen.add(row.id);
+    picked.push(row);
+  }
+
+  return picked.map((row, i) => ({
+    ingredientId: row.id,
+    confidence: 0.72 + ((hash + i * 17) % 23) / 100,
+    rawLabel: row.name.toLowerCase()
+  }));
 }
 
 export async function processScanSession(scanSessionId: string) {
@@ -43,26 +45,16 @@ export async function processScanSession(scanSessionId: string) {
 
   await assertScanObjectReadable(scanSession.imageUrl);
 
-  const pickedDetections = pickDetections(scanSessionId);
+  const pickedDetections = await pickCatalogDetections(scanSessionId);
 
   await prisma.$transaction(async (tx) => {
     await tx.scanDetection.deleteMany({ where: { scanSessionId } });
 
     for (const detection of pickedDetections) {
-      const ingredient = await tx.ingredient.upsert({
-        where: { name: detection.ingredientName },
-        update: {},
-        create: {
-          name: detection.ingredientName,
-          category: detection.category,
-          defaultUnit: detection.defaultUnit
-        }
-      });
-
       await tx.scanDetection.create({
         data: {
           scanSessionId,
-          ingredientId: ingredient.id,
+          ingredientId: detection.ingredientId,
           confidence: detection.confidence,
           rawLabel: detection.rawLabel
         }

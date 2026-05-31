@@ -218,15 +218,20 @@ export const RecipeDetailsScreen = ({ navigation }: any) => {
          >
             <Text style={styles.variationsText}>{logging ? "Saving…" : "Log to today"}</Text>
          </TouchableOpacity>
-         <TouchableOpacity 
+         <TouchableOpacity
            style={styles.variationsButton}
-           onPress={() => navigation.navigate('CustomMeal')}
+           disabled={!recipe}
+           onPress={() => recipe && navigation.navigate('CustomMeal', { recipeId: recipe.id })}
          >
             <Text style={styles.variationsText}>Meal Variations</Text>
          </TouchableOpacity>
-         <TouchableOpacity 
+         <TouchableOpacity
            style={styles.cookingButton}
-           onPress={() => navigation.navigate('Cooking')}
+           disabled={!recipe}
+           onPress={() =>
+              recipe &&
+              navigation.navigate("Main", { screen: "Cooking", params: { recipeId: recipe.id } })
+            }
          >
             <Text style={styles.cookingText}>Start Cooking Mode</Text>
          </TouchableOpacity>

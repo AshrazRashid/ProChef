@@ -146,10 +146,24 @@ scansRouter.get("/:scanId", async (req: AuthedRequest, res) => {
     res.status(404).json({ message: "Scan not found" });
     return;
   }
-  res.json(scan);
+  // Poll clients must always receive fresh status (queued → completed).
+  res.set({
+    "Cache-Control": "no-store, no-cache, must-revalidate",
+    Pragma: "no-cache"
+  });
+  res.status(200).type("json").send(JSON.stringify(scan));
 });
 
 scansRouter.post("/:scanId/confirm", async (req: AuthedRequest, res) => {
+  const confirmSchema = z.object({
+    ingredientIds: z.array(z.string().uuid()).min(1).optional()
+  });
+  const parse = confirmSchema.safeParse(req.body ?? {});
+  if (!parse.success) {
+    res.status(400).json({ message: "Invalid payload", errors: parse.error.flatten() });
+    return;
+  }
+
   const scan = await prisma.scanSession.findFirst({
     where: { id: req.params.scanId, userId: req.user!.id },
     include: { detections: true }
@@ -159,12 +173,41 @@ scansRouter.post("/:scanId/confirm", async (req: AuthedRequest, res) => {
     return;
   }
 
+  if (scan.status !== "completed") {
+    res.status(409).json({ message: "Scan is not complete yet" });
+    return;
+  }
+
+  const scanIngredientIds = new Set(scan.detections.map((det) => det.ingredientId));
+  let targetIngredientIds: string[];
+
+  if (parse.data.ingredientIds) {
+    targetIngredientIds = [...new Set(parse.data.ingredientIds)];
+    for (const ingredientId of targetIngredientIds) {
+      if (scanIngredientIds.has(ingredientId)) {
+        continue;
+      }
+      const exists = await prisma.ingredient.findUnique({ where: { id: ingredientId } });
+      if (!exists) {
+        res.status(400).json({ message: "Invalid ingredient id" });
+        return;
+      }
+    }
+  } else {
+    targetIngredientIds = [...scanIngredientIds];
+  }
+
+  if (targetIngredientIds.length === 0) {
+    res.status(400).json({ message: "No ingredients to confirm" });
+    return;
+  }
+
   const pantryItems = await Promise.all(
-    scan.detections.map((det) =>
+    targetIngredientIds.map((ingredientId) =>
       prisma.pantryItem.create({
         data: {
           userId: req.user!.id,
-          ingredientId: det.ingredientId,
+          ingredientId,
           quantity: 1,
           unit: "unit",
           source: "scan"

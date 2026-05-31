@@ -16,6 +16,7 @@ import { ChevronLeft, Settings, Zap } from "lucide-react-native";
 import { Colors } from "../constants/theme";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch, apiJson } from "../api/client";
+import { normalizeScanContentType, scanApiErrorMessage } from "../api/scanUpload";
 
 const { width } = Dimensions.get("window");
 
@@ -32,6 +33,7 @@ export const CameraScanScreen = ({ navigation }: any) => {
   const startUpload = useCallback(
     async (uri: string, mime: string) => {
       setBusy(true);
+      const contentType = normalizeScanContentType(mime);
       try {
         const meta = await apiJson<{
           scanSessionId: string;
@@ -39,13 +41,13 @@ export const CameraScanScreen = ({ navigation }: any) => {
           objectKey: string;
         }>("/scans/upload-url", {
           method: "POST",
-          body: JSON.stringify({ contentType: mime })
+          body: JSON.stringify({ contentType })
         });
         const fileRes = await fetch(uri);
         const blob = await fileRes.blob();
         const put = await fetch(meta.uploadUrl, {
           method: "PUT",
-          headers: { "Content-Type": mime },
+          headers: { "Content-Type": contentType },
           body: blob
         });
         if (!put.ok) {
@@ -59,14 +61,17 @@ export const CameraScanScreen = ({ navigation }: any) => {
           navigation.replace("PremiumAccess");
           return;
         }
+        if (queue.status === 409) {
+          navigation.navigate("Ingredients", { scanId: meta.scanSessionId });
+          return;
+        }
         if (!queue.ok) {
           const j = await queue.json().catch(() => ({}));
           throw new Error(typeof j.message === "string" ? j.message : "Failed to queue scan");
         }
         navigation.navigate("Ingredients", { scanId: meta.scanSessionId });
       } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : "Scan failed";
-        Alert.alert("Scan", msg);
+        Alert.alert("Scan", scanApiErrorMessage(e, "Scan failed"));
       } finally {
         setBusy(false);
       }

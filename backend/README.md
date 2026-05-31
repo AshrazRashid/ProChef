@@ -20,6 +20,20 @@ Modular monolith backend for the ProChef mobile app.
 - **Load tests:** `npm run loadtest` (autocannon; API must be running). Optional: `npm run loadtest:k6` with [k6](https://k6.io/) installed.
 - **Backups / drills:** [`docs/backup-restore.md`](./docs/backup-restore.md) and `scripts/db-backup.sh` / `scripts/db-restore.sh`.
 
+## Scan Phase 2
+
+See [`docs/scan-phase2-api.md`](./docs/scan-phase2-api.md) for the S3 presigned upload + async scan contract.
+
+## Meal planning (Phase 4)
+
+- `POST /meal-plans` — generate weekly slots from recommendations (or all recipes)
+- `GET /meal-plans/current` — latest plan with recipe details per slot
+- `POST /shopping-lists/generate` — aggregate ingredients, optional pantry subtraction
+- `GET /shopping-lists/current`, `PATCH /shopping-lists/items/:itemId`
+- Seed recipes: `npm run prisma:seed` (ingredients + sample recipes)
+
+Optional local S3/Redis: `docker compose -f ../docker-compose.dev.yml up -d` from repo root.
+
 ## Local Setup
 
 1. Copy `.env.example` to `.env` and update values.

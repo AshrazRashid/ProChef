@@ -46,6 +46,7 @@ import { PantryScreen } from "./src/screens/PantryScreen";
 import { ProfileScreen } from "./src/screens/ProfileScreen";
 import { EditProfileScreen } from "./src/screens/EditProfileScreen";
 import { SecurityScreen } from "./src/screens/SecurityScreen";
+import { ProgressPhotosScreen } from "./src/screens/ProgressPhotosScreen";
 import { Colors } from "./src/constants/theme";
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
 import { OnboardingProvider } from "./src/context/OnboardingContext";
@@ -171,6 +172,7 @@ function RootNavigator() {
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="EditProfile" component={EditProfileScreen} />
         <Stack.Screen name="Security" component={SecurityScreen} />
+        <Stack.Screen name="ProgressPhotos" component={ProgressPhotosScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

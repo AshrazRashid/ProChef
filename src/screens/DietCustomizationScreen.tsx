@@ -1,5 +1,5 @@
 import { SafeAreaView } from "react-native-safe-area-context";
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -24,6 +24,26 @@ export const DietCustomizationScreen = ({ navigation }: any) => {
   const { refreshUser, refreshEntitlements } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [selectedGoals, setSelectedGoals] = useState<string[]>(['high_protein']);
+  const [planPreview, setPlanPreview] = useState<{ calorieTarget: number; proteinG: number } | null>(null);
+
+  useEffect(() => {
+    const dietType = selectedGoals[0] ?? "balanced";
+    void apiJson<{ plan: { calorieTarget: number; proteinG: number } }>("/me/plan-preview", {
+      method: "POST",
+      body: JSON.stringify({
+        age: draft.age,
+        heightCm: draft.heightCm,
+        weightKg: draft.currentWeightKg,
+        sex: draft.sex,
+        goalType: draft.goalType,
+        targetWeightKg: draft.targetWeightKg,
+        targetWeeks: draft.targetWeeks,
+        dietType
+      })
+    })
+      .then((res) => setPlanPreview({ calorieTarget: res.plan.calorieTarget, proteinG: res.plan.proteinG }))
+      .catch(() => setPlanPreview(null));
+  }, [draft, selectedGoals]);
 
   const commitPlan = async () => {
     const dietType = selectedGoals[0] ?? "balanced";
@@ -103,6 +123,11 @@ export const DietCustomizationScreen = ({ navigation }: any) => {
         <View style={styles.introContainer}>
           <Text style={styles.introTitle}>Customize Your Diet</Text>
           <Text style={styles.introSubtitle}>We'll tailor meals to your needs</Text>
+          {planPreview ? (
+            <Text style={styles.previewText}>
+              Server preview: {planPreview.calorieTarget} kcal · {Math.round(planPreview.proteinG)}g protein
+            </Text>
+          ) : null}
         </View>
         {/* Diet Goals */}
         <View style={styles.sectionHeader}>
@@ -249,6 +274,13 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: 14,
     fontFamily: 'Inter-Regular',
+  },
+  previewText: {
+    marginTop: 12,
+    color: Colors.secondary,
+    fontSize: 13,
+    fontFamily: 'Inter-SemiBold',
+    textAlign: 'center'
   },
   sectionHeader: {
     flexDirection: 'row',
