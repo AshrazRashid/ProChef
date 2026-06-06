@@ -81,10 +81,18 @@ function MealSlotCard({
   );
 }
 
+type DietProfile = {
+  calorieTarget: number;
+  proteinG: number;
+  carbG: number;
+  fatG: number;
+};
+
 export const MealPlannerScreen = ({ navigation }: { navigation: { navigate: (name: string, params?: object) => void } }) => {
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [plan, setPlan] = useState<MealPlan | null>(null);
   const [shopping, setShopping] = useState<ShoppingList | null>(null);
+  const [dietProfile, setDietProfile] = useState<DietProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
 
@@ -100,15 +108,18 @@ export const MealPlannerScreen = ({ navigation }: { navigation: { navigate: (nam
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [p, s] = await Promise.all([
+      const [p, s, userRes] = await Promise.all([
         apiJson<MealPlan | null>("/meal-plans/current", { method: "GET" }),
-        apiJson<ShoppingList | null>("/shopping-lists/current", { method: "GET" })
+        apiJson<ShoppingList | null>("/shopping-lists/current", { method: "GET" }),
+        apiJson<{ dietProfile: DietProfile | null }>("/me", { method: "GET" }).catch(() => ({ dietProfile: null }))
       ]);
       setPlan(p);
       setShopping(s);
+      setDietProfile(userRes?.dietProfile ?? null);
     } catch {
       setPlan(null);
       setShopping(null);
+      setDietProfile(null);
     } finally {
       setLoading(false);
     }
@@ -161,11 +172,21 @@ export const MealPlannerScreen = ({ navigation }: { navigation: { navigate: (nam
     navigation.navigate("RecipeDetails", { recipeId: slot.recipe.id });
   };
 
-  const macros = [
-    { label: "PROTEIN", val: "160g", percent: 40, color: "#426D45" },
-    { label: "CARBS", val: "220g", percent: 35, color: "#FFB74D" },
-    { label: "FATS", val: "65g", percent: 25, color: "#4FC3F7" }
-  ];
+  const calorieTarget = dietProfile?.calorieTarget ?? 2100;
+  const proteinG = dietProfile?.proteinG ?? 160;
+  const carbG = dietProfile?.carbG ?? 220;
+  const fatG = dietProfile?.fatG ?? 65;
+
+  const totalKcal = (proteinG * 4) + (carbG * 4) + (fatG * 9) || 1;
+  const proteinPct = Math.round((proteinG * 4 / totalKcal) * 100);
+  const carbPct = Math.round((carbG * 4 / totalKcal) * 100);
+  const fatPct = Math.round((fatG * 9 / totalKcal) * 100);
+
+  const macros = useMemo(() => [
+    { label: "PROTEIN", val: `${Math.round(proteinG)}g`, percent: proteinPct, color: "#426D45" },
+    { label: "CARBS", val: `${Math.round(carbG)}g`, percent: carbPct, color: "#FFB74D" },
+    { label: "FATS", val: `${Math.round(fatG)}g`, percent: fatPct, color: "#4FC3F7" }
+  ], [proteinG, carbG, fatG, proteinPct, carbPct, fatPct]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -181,7 +202,7 @@ export const MealPlannerScreen = ({ navigation }: { navigation: { navigate: (nam
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.goalCard}>
             <Text style={styles.goalLabel}>WEEKLY GOAL</Text>
-            <Text style={styles.goalValue}>2,100</Text>
+            <Text style={styles.goalValue}>{calorieTarget.toLocaleString()}</Text>
             <Text style={styles.goalUnit}>kcal / day avg</Text>
             <View style={styles.macroRow}>
               {macros.map((m, i) => (

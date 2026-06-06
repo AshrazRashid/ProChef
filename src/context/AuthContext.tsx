@@ -7,6 +7,7 @@ import { resetCheckoutNavigationGuards } from "../navigation/afterCheckoutToMain
 export type AuthUser = {
   id: string;
   email: string;
+  displayName?: string | null;
   age?: number | null;
   heightCm?: number | null;
   weightKg?: number | null;

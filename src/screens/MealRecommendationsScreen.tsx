@@ -9,7 +9,8 @@ import {
   Image,
   Dimensions,
   Switch,
-  ActivityIndicator
+  ActivityIndicator,
+  Modal
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { ChevronLeft, Filter, Zap, Heart, Utensils, ChefHat, AlertCircle } from 'lucide-react-native';
@@ -24,20 +25,32 @@ type RecItem = {
   recipe: {
     id: string;
     title: string;
+    description?: string;
     prepMinutes: number;
     cookMinutes: number;
+    difficulty: string;
+    servings?: number;
+    imageUrl?: string | null;
     caloriesPerServing: number | null;
     proteinG: number | null;
     carbsG: number | null;
     fatG: number | null;
+    isFavorite?: boolean;
   };
 };
 
 export const MealRecommendationsScreen = ({ navigation }: any) => {
   const { hasPro } = useAuth();
   const [showImpact, setShowImpact] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [items, setItems] = useState<RecItem[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Filter & Sort States
+  const [filterTime, setFilterTime] = useState<number | null>(null);
+  const [filterDifficulty, setFilterDifficulty] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<string>('score');
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
 
   const load = useCallback(async () => {
     if (!hasPro) {
@@ -68,8 +81,92 @@ export const MealRecommendationsScreen = ({ navigation }: any) => {
     }, [load])
   );
 
-  const top = items[0];
-  const rest = items.slice(1);
+  const toggleFavorite = async (recipeId: string) => {
+    // Find the item to see what its current state is
+    const item = items.find((it) => it.recipe.id === recipeId);
+    if (!item) return;
+    const isFav = !!item.recipe.isFavorite;
+
+    // Optimistic UI update
+    setItems((prev) =>
+      prev.map((it) => {
+        if (it.recipe.id === recipeId) {
+          return {
+            ...it,
+            recipe: {
+              ...it.recipe,
+              isFavorite: !isFav
+            }
+          };
+        }
+        return it;
+      })
+    );
+
+    try {
+      if (isFav) {
+        await apiJson(`/recipes/${recipeId}/favorite`, { method: "DELETE" });
+      } else {
+        await apiJson(`/recipes/${recipeId}/favorite`, { method: "POST" });
+      }
+    } catch (e) {
+      // Revert on error
+      setItems((prev) =>
+        prev.map((it) => {
+          if (it.recipe.id === recipeId) {
+            return {
+              ...it,
+              recipe: {
+                ...it.recipe,
+                isFavorite: isFav
+              }
+            };
+          }
+          return it;
+        })
+      );
+    }
+  };
+
+
+  const filteredItems = items.filter((item) => {
+    // 1. Category Filter
+    if (selectedCategory === "HIGH PROTEIN") {
+      if (item.recipe.proteinG == null || item.recipe.proteinG < 20) return false;
+    } else if (selectedCategory === "LOW CALORIE") {
+      if (item.recipe.caloriesPerServing == null || item.recipe.caloriesPerServing > 350) return false;
+    }
+
+    // 2. Prep + Cook Time Filter
+    if (filterTime !== null) {
+      const total = item.recipe.prepMinutes + item.recipe.cookMinutes;
+      if (total > filterTime) return false;
+    }
+
+    // 3. Difficulty Filter
+    if (filterDifficulty !== null) {
+      if (item.recipe.difficulty?.toLowerCase() !== filterDifficulty.toLowerCase()) return false;
+    }
+
+    return true;
+  }).sort((a, b) => {
+    // 4. Sorting
+    if (sortBy === 'calories') {
+      const aCals = a.recipe.caloriesPerServing ?? 999999;
+      const bCals = b.recipe.caloriesPerServing ?? 999999;
+      return aCals - bCals;
+    }
+    if (sortBy === 'protein') {
+      const aProt = a.recipe.proteinG ?? 0;
+      const bProt = b.recipe.proteinG ?? 0;
+      return bProt - aProt;
+    }
+    // Default score sorting
+    return b.score - a.score;
+  });
+
+  const top = filteredItems[0];
+  const rest = filteredItems.slice(1);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -79,123 +176,258 @@ export const MealRecommendationsScreen = ({ navigation }: any) => {
           <ChevronLeft color={Colors.primary} size={28} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Meal Recommendations</Text>
-        <TouchableOpacity style={styles.filterBtn}>
+        <TouchableOpacity style={styles.filterBtn} onPress={() => setFilterModalVisible(true)}>
            <Filter color={Colors.primary} size={20} />
         </TouchableOpacity>
       </View>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Category Chips */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
-           {['ALL', 'HIGH PROTEIN', 'LOW CALORIE'].map((chip, idx) => (
-             <TouchableOpacity key={idx} style={[styles.chip, idx === 0 && styles.chipActive]}>
-                <Text style={[styles.chipText, idx === 0 && styles.chipTextActive]}>{chip}</Text>
-             </TouchableOpacity>
-           ))}
-        </ScrollView>
-        {/* Macro Visualizer Header */}
-        <View style={styles.macroHeader}>
-           <Text style={styles.macroTitle}>Macro Visualizer</Text>
-           <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>SHOW IMPACT</Text>
-              <Switch 
-                value={showImpact}
-                onValueChange={setShowImpact}
-                trackColor={{ false: '#EEE', true: Colors.primary }}
-              />
+         {/* Category Chips */}
+         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
+            {['ALL', 'HIGH PROTEIN', 'LOW CALORIE'].map((chip) => (
+              <TouchableOpacity 
+                key={chip} 
+                onPress={() => setSelectedCategory(chip)}
+                style={[styles.chip, selectedCategory === chip && styles.chipActive]}
+              >
+                 <Text style={[styles.chipText, selectedCategory === chip && styles.chipTextActive]}>{chip}</Text>
+              </TouchableOpacity>
+            ))}
+         </ScrollView>
+         {/* Macro Visualizer Header */}
+         <View style={styles.macroHeader}>
+            <Text style={styles.macroTitle}>Macro Visualizer</Text>
+            <View style={styles.switchRow}>
+               <Text style={styles.switchLabel}>SHOW IMPACT</Text>
+               <Switch 
+                 value={showImpact}
+                 onValueChange={setShowImpact}
+                 trackColor={{ false: '#EEE', true: Colors.primary }}
+               />
+            </View>
+         </View>
+         {loading ? (
+           <View style={styles.loadingBox}>
+             <ActivityIndicator size="large" color={Colors.primary} />
+             <Text style={styles.loadingText}>Loading pantry-based recipes…</Text>
            </View>
-        </View>
-        {loading ? (
-          <View style={styles.loadingBox}>
-            <ActivityIndicator size="large" color={Colors.primary} />
-            <Text style={styles.loadingText}>Loading pantry-based recipes…</Text>
-          </View>
-        ) : null}
-        {/* Main Recommendation Card */}
-        {top ? (
-        <TouchableOpacity 
-          style={styles.mainCard}
-          onPress={() => navigation.navigate("RecipeDetails", { recipeId: top.recipe.id })}
-        >
-           <View style={styles.imageContainer}>
-              <Image source={require('../assets/images/LemonChicken.png')} style={styles.mainImage} />
-              <View style={styles.badgesCol}>
-                 <View style={styles.badgeLabel}><Text style={styles.badgeTextSmall}>PANTRY MATCH</Text></View>
-                 <View style={[styles.badgeLabel, { backgroundColor: Colors.primary }]}><Text style={styles.badgeTextSmall}>{Math.round(top.score * 100)}% SCORE</Text></View>
-              </View>
-              <TouchableOpacity style={styles.heartBtn}><Heart size={20} color="#333" /></TouchableOpacity>
-           </View>
-           <View style={styles.cardInfo}>
-              <View style={styles.cardHeader}>
-                 <Text style={styles.mainTitle}>{top.recipe.title}</Text>
-                 <View style={styles.timeRow}><Image source={require('../assets/icons/tick.png')} style={styles.timeIcon} /><Text style={styles.timeText}>{top.recipe.prepMinutes + top.recipe.cookMinutes} min</Text></View>
-              </View>
-              <View style={styles.nutritionGrid}>
-                 {[
-                   { l: 'CALS', v: top.recipe.caloriesPerServing != null ? String(top.recipe.caloriesPerServing) : "—", c: '#E8F5E9' },
-                   { l: 'PROT', v: top.recipe.proteinG != null ? `${Math.round(top.recipe.proteinG)}g` : "—", c: '#F5F5F5' },
-                   { l: 'CARB', v: top.recipe.carbsG != null ? `${Math.round(top.recipe.carbsG)}g` : "—", c: '#F5F5F5' },
-                   { l: 'FAT', v: top.recipe.fatG != null ? `${Math.round(top.recipe.fatG)}g` : "—", c: '#F5F5F5' }
-                 ].map((n, i) => (
-                   <View key={i} style={[styles.nutBox, { backgroundColor: n.c }]}>
-                      <Text style={styles.nutLabel}>{n.l}</Text>
-                      <Text style={styles.nutValue}>{n.v}</Text>
-                   </View>
-                 ))}
-              </View>
-              <View style={styles.actionRow}>
-                 <TouchableOpacity style={styles.viewRecipeBtn} onPress={() => navigation.navigate("RecipeDetails", { recipeId: top.recipe.id })}><Text style={styles.viewRecipeText}>View Recipe</Text></TouchableOpacity>
-                 <TouchableOpacity style={styles.flashBtn}><Zap size={20} color={Colors.primary} /></TouchableOpacity>
-              </View>
-           </View>
-        </TouchableOpacity>
-        ) : !loading ? (
-          <Text style={styles.emptyText}>Add ingredients from a scan, then refresh recommendations.</Text>
-        ) : null}
-        {/* Best Match Banner */}
-        <TouchableOpacity style={styles.bannerCard} disabled={!rest[0]} onPress={() => rest[0] && navigation.navigate("RecipeDetails", { recipeId: rest[0].recipe.id })}>
-           <View style={styles.bannerContent}>
-              <View style={styles.bannerHeader}>
-                 <ChefHat size={16} color={Colors.white} />
-                 <Text style={styles.bannerHeaderText}>NEXT BEST MATCH</Text>
-              </View>
-              <Text style={styles.bannerTitle}>{rest[0]?.recipe.title ?? "—"}</Text>
-              <Text style={styles.bannerDesc}>Ranked from your pantry overlap (V1 pantry matching).</Text>
-              <View style={styles.bannerStats}>
-                 <View>
-                    <Text style={styles.bannerStatLabel}>SCORE</Text>
-                    <Text style={styles.bannerStatValue}>{rest[0] ? Math.round(rest[0].score * 100) : 0}%</Text>
-                 </View>
-                 <View style={{ marginLeft: 30 }}>
-                    <Text style={styles.bannerStatLabel}>CALS</Text>
-                    <Text style={styles.bannerStatValue}>{rest[0]?.recipe.caloriesPerServing ?? "—"}</Text>
-                 </View>
-                 <TouchableOpacity style={styles.getStartedBtn}><Text style={styles.getStartedText}>Get Started</Text></TouchableOpacity>
-              </View>
-           </View>
-           <View style={styles.bannerImageContainer}>
-              <Image source={require('../assets/images/QuinoaSalad.png')} style={styles.bannerImage} />
-           </View>
-        </TouchableOpacity>
-        {rest.slice(1).map((row) => (
-        <TouchableOpacity key={row.recipeId} style={styles.listCard} onPress={() => navigation.navigate("RecipeDetails", { recipeId: row.recipe.id })}>
-           <Image source={require('../assets/images/SpinachAndOmelette.png')} style={styles.listImage} />
-           <View style={styles.listContent}>
-              <Text style={styles.listTitle}>{row.recipe.title}</Text>
-              <View style={styles.warningRow}>
-                 <AlertCircle size={14} color="#FF9800" />
-                 <Text style={styles.warningText}>SCORE {Math.round(row.score * 100)}%</Text>
-              </View>
-              <View style={styles.listFooter}>
-                 <Text style={styles.listInfo}>{row.recipe.prepMinutes + row.recipe.cookMinutes} min</Text>
-                 <TouchableOpacity onPress={() => navigation.navigate("RecipeDetails", { recipeId: row.recipe.id })}><Text style={styles.subsText}>OPEN</Text></TouchableOpacity>
-              </View>
-           </View>
-        </TouchableOpacity>
-        ))}
+         ) : null}
+         {/* Main Recommendation Card */}
+         {top ? (
+         <TouchableOpacity 
+           style={styles.mainCard}
+           onPress={() => navigation.navigate("RecipeDetails", { recipeId: top.recipe.id })}
+         >
+            <View style={styles.imageContainer}>
+               <Image source={require('../assets/images/LemonChicken.png')} style={styles.mainImage} />
+               <View style={styles.badgesCol}>
+                  <View style={styles.badgeLabel}><Text style={styles.badgeTextSmall}>PANTRY MATCH</Text></View>
+                  <View style={[styles.badgeLabel, { backgroundColor: Colors.primary }]}><Text style={styles.badgeTextSmall}>{Math.round(top.score * 100)}% SCORE</Text></View>
+               </View>
+               <TouchableOpacity 
+                 style={styles.heartBtn} 
+                 onPress={() => toggleFavorite(top.recipe.id)}
+               >
+                 <Heart 
+                   size={20} 
+                   color={top.recipe.isFavorite ? "#FF3B30" : "#333"} 
+                   fill={top.recipe.isFavorite ? "#FF3B30" : "transparent"} 
+                 />
+               </TouchableOpacity>
+            </View>
+            <View style={styles.cardInfo}>
+               <View style={styles.cardHeader}>
+                  <Text style={styles.mainTitle}>{top.recipe.title}</Text>
+                  <View style={styles.timeRow}><Image source={require('../assets/icons/tick.png')} style={styles.timeIcon} /><Text style={styles.timeText}>{top.recipe.prepMinutes + top.recipe.cookMinutes} min</Text></View>
+               </View>
+               {showImpact && (
+                  <View style={styles.nutritionGrid}>
+                     {[
+                       { l: 'CALS', v: top.recipe.caloriesPerServing != null ? String(top.recipe.caloriesPerServing) : "—", c: '#E8F5E9' },
+                       { l: 'PROT', v: top.recipe.proteinG != null ? `${Math.round(top.recipe.proteinG)}g` : "—", c: '#F5F5F5' },
+                       { l: 'CARB', v: top.recipe.carbsG != null ? `${Math.round(top.recipe.carbsG)}g` : "—", c: '#F5F5F5' },
+                       { l: 'FAT', v: top.recipe.fatG != null ? `${Math.round(top.recipe.fatG)}g` : "—", c: '#F5F5F5' }
+                     ].map((n, i) => (
+                       <View key={i} style={[styles.nutBox, { backgroundColor: n.c }]}>
+                          <Text style={styles.nutLabel}>{n.l}</Text>
+                          <Text style={styles.nutValue}>{n.v}</Text>
+                       </View>
+                     ))}
+                  </View>
+                )}
+               <View style={styles.actionRow}>
+                  <TouchableOpacity style={styles.viewRecipeBtn} onPress={() => navigation.navigate("RecipeDetails", { recipeId: top.recipe.id })}><Text style={styles.viewRecipeText}>View Recipe</Text></TouchableOpacity>
+                  <TouchableOpacity style={styles.flashBtn}><Zap size={20} color={Colors.primary} /></TouchableOpacity>
+               </View>
+            </View>
+         </TouchableOpacity>
+         ) : !loading ? (
+           <Text style={styles.emptyText}>Add ingredients from a scan, then refresh recommendations.</Text>
+         ) : null}
+         {/* Best Match Banner */}
+         {rest[0] && (
+         <TouchableOpacity style={styles.bannerCard} onPress={() => navigation.navigate("RecipeDetails", { recipeId: rest[0].recipe.id })}>
+            <View style={styles.bannerContent}>
+               <View style={styles.bannerHeader}>
+                  <ChefHat size={16} color={Colors.white} />
+                  <Text style={styles.bannerHeaderText}>NEXT BEST MATCH</Text>
+                  <TouchableOpacity 
+                    onPress={() => toggleFavorite(rest[0].recipe.id)} 
+                    style={{ marginLeft: 'auto' }}
+                    hitSlop={8}
+                  >
+                     <Heart 
+                       size={18} 
+                       color={rest[0].recipe.isFavorite ? "#FF3B30" : "#FFF"} 
+                       fill={rest[0].recipe.isFavorite ? "#FF3B30" : "transparent"} 
+                     />
+                  </TouchableOpacity>
+               </View>
+               <Text style={styles.bannerTitle}>{rest[0]?.recipe.title ?? "—"}</Text>
+               <Text style={styles.bannerDesc}>Ranked from your pantry overlap (V1 pantry matching).</Text>
+               <View style={styles.bannerStats}>
+                  <View>
+                     <Text style={styles.bannerStatLabel}>SCORE</Text>
+                     <Text style={styles.bannerStatValue}>{Math.round(rest[0].score * 100)}%</Text>
+                  </View>
+                  {showImpact && (
+                     <View style={{ marginLeft: 30 }}>
+                        <Text style={styles.bannerStatLabel}>CALS</Text>
+                        <Text style={styles.bannerStatValue}>{rest[0]?.recipe.caloriesPerServing ?? "—"}</Text>
+                     </View>
+                   )}
+                  <TouchableOpacity style={styles.getStartedBtn}><Text style={styles.getStartedText}>Get Started</Text></TouchableOpacity>
+               </View>
+            </View>
+            <View style={styles.bannerImageContainer}>
+               <Image source={require('../assets/images/QuinoaSalad.png')} style={styles.bannerImage} />
+            </View>
+         </TouchableOpacity>
+         )}
+         {rest.slice(1).map((row) => (
+         <TouchableOpacity key={row.recipeId} style={styles.listCard} onPress={() => navigation.navigate("RecipeDetails", { recipeId: row.recipe.id })}>
+            <Image source={require('../assets/images/SpinachAndOmelette.png')} style={styles.listImage} />
+            <View style={styles.listContent}>
+               <Text style={styles.listTitle}>{row.recipe.title}</Text>
+               <View style={styles.warningRow}>
+                  <AlertCircle size={14} color="#FF9800" />
+                  <Text style={styles.warningText}>SCORE {Math.round(row.score * 100)}%</Text>
+               </View>
+               <View style={styles.listFooter}>
+                  <Text style={styles.listInfo}>{row.recipe.prepMinutes + row.recipe.cookMinutes} min</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                     <TouchableOpacity 
+                        onPress={() => toggleFavorite(row.recipe.id)} 
+                        style={{ marginRight: 16 }}
+                        hitSlop={8}
+                     >
+                        <Heart 
+                          size={18} 
+                          color={row.recipe.isFavorite ? "#FF3B30" : "#666"} 
+                          fill={row.recipe.isFavorite ? "#FF3B30" : "transparent"} 
+                        />
+                     </TouchableOpacity>
+                     <TouchableOpacity onPress={() => navigation.navigate("RecipeDetails", { recipeId: row.recipe.id })}><Text style={styles.subsText}>OPEN</Text></TouchableOpacity>
+                  </View>
+               </View>
+            </View>
+         </TouchableOpacity>
+         ))}
       </ScrollView>
+
+      {/* Slide-up Filter & Sort Modal */}
+      <Modal visible={filterModalVisible} animationType="slide" transparent onRequestClose={() => setFilterModalVisible(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setFilterModalVisible(false)}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalHeading}>Filter & Sort Recommendations</Text>
+            
+            {/* Max Cooking Time */}
+            <Text style={styles.modalSectionLabel}>Max Cooking Time</Text>
+            <View style={styles.modalFilterRow}>
+              {[
+                { label: 'Any', value: null },
+                { label: '15 min', value: 15 },
+                { label: '30 min', value: 30 },
+                { label: '45 min', value: 45 },
+              ].map((opt) => (
+                <TouchableOpacity
+                  key={opt.label}
+                  onPress={() => setFilterTime(opt.value)}
+                  style={[styles.modalOptionBtn, filterTime === opt.value && styles.modalOptionBtnActive]}
+                >
+                  <Text style={[styles.modalOptionText, filterTime === opt.value && styles.modalOptionTextActive]}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Difficulty */}
+            <Text style={styles.modalSectionLabel}>Difficulty</Text>
+            <View style={styles.modalFilterRow}>
+              {[
+                { label: 'Any', value: null },
+                { label: 'Easy', value: 'easy' },
+                { label: 'Medium', value: 'medium' },
+                { label: 'Hard', value: 'hard' },
+              ].map((opt) => (
+                <TouchableOpacity
+                  key={opt.label}
+                  onPress={() => setFilterDifficulty(opt.value)}
+                  style={[styles.modalOptionBtn, filterDifficulty === opt.value && styles.modalOptionBtnActive]}
+                >
+                  <Text style={[styles.modalOptionText, filterDifficulty === opt.value && styles.modalOptionTextActive]}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Sort By */}
+            <Text style={styles.modalSectionLabel}>Sort By</Text>
+            <View style={styles.modalFilterRow}>
+              {[
+                { label: 'Score', value: 'score' },
+                { label: 'Calories', value: 'calories' },
+                { label: 'Protein', value: 'protein' },
+              ].map((opt) => (
+                <TouchableOpacity
+                  key={opt.label}
+                  onPress={() => setSortBy(opt.value)}
+                  style={[styles.modalOptionBtn, sortBy === opt.value && styles.modalOptionBtnActive]}
+                >
+                  <Text style={[styles.modalOptionText, sortBy === opt.value && styles.modalOptionTextActive]}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <View style={styles.modalActionButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalResetBtn]}
+                onPress={() => {
+                  setFilterTime(null);
+                  setFilterDifficulty(null);
+                  setSortBy('score');
+                  setFilterModalVisible(false);
+                }}
+              >
+                <Text style={styles.modalResetText}>Reset All</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalApplyBtn]}
+                onPress={() => setFilterModalVisible(false)}
+              >
+                <Text style={styles.modalApplyText}>Apply Filters</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 };
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F8F8' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#FFF' },
@@ -262,4 +494,93 @@ const styles = StyleSheet.create({
   loadingBox: { paddingVertical: 40, alignItems: 'center' },
   loadingText: { marginTop: 12, color: '#666', fontFamily: 'Inter-Regular', fontSize: 13 },
   emptyText: { color: '#666', fontFamily: 'Inter-Regular', fontSize: 14, marginBottom: 16 },
+
+  // Modal styling
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 40,
+  },
+  modalHeading: {
+    fontSize: 18,
+    fontFamily: 'Inter-Bold',
+    color: Colors.primary,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalSectionLabel: {
+    fontSize: 14,
+    fontFamily: 'Inter-Bold',
+    color: '#666',
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  modalFilterRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 16,
+  },
+  modalOptionBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: '#F5F5F5',
+    marginRight: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#EEE',
+  },
+  modalOptionBtnActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  modalOptionText: {
+    fontSize: 13,
+    color: '#666',
+    fontFamily: 'Inter-Medium',
+  },
+  modalOptionTextActive: {
+    color: '#FFF',
+    fontFamily: 'Inter-Bold',
+  },
+  modalActionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 24,
+  },
+  modalButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalResetBtn: {
+    backgroundColor: '#FFF',
+    borderWidth: 1,
+    borderColor: '#CCC',
+    marginRight: 12,
+  },
+  modalResetText: {
+    color: '#666',
+    fontFamily: 'Inter-Bold',
+    fontSize: 15,
+  },
+  modalApplyBtn: {
+    backgroundColor: '#426D45',
+    marginLeft: 12,
+  },
+  modalApplyText: {
+    color: '#FFF',
+    fontFamily: 'Inter-Bold',
+    fontSize: 15,
+  },
 });

@@ -84,6 +84,12 @@ recommendationsRouter.post("/meals", requireProEntitlement, async (req: AuthedRe
         ])
   ]);
 
+  const favorites = await prisma.favoriteRecipe.findMany({
+    where: { userId },
+    select: { recipeId: true }
+  });
+  const favoriteSet = new Set(favorites.map((f) => f.recipeId));
+
   const recommendations = await prisma.mealRecommendation.findMany({
     where: { userId },
     include: { recipe: true },
@@ -108,8 +114,10 @@ recommendationsRouter.post("/meals", requireProEntitlement, async (req: AuthedRe
         caloriesPerServing: r.recipe.caloriesPerServing,
         proteinG: r.recipe.proteinG,
         carbsG: r.recipe.carbsG,
-        fatG: r.recipe.fatG
+        fatG: r.recipe.fatG,
+        isFavorite: favoriteSet.has(r.recipeId)
       }
     }))
   });
 });
+

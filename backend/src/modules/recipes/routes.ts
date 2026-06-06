@@ -38,11 +38,18 @@ export const recipesRouter = Router();
 recipesRouter.use(requireAuth, requireProEntitlement);
 
 recipesRouter.get("/", async (req: AuthedRequest, res) => {
+  const userId = req.user!.id;
   const pantryItems = await prisma.pantryItem.findMany({
-    where: { userId: req.user!.id },
+    where: { userId },
     select: { ingredientId: true }
   });
   const pantryIngredientIds = new Set(pantryItems.map((item) => item.ingredientId));
+
+  const favorites = await prisma.favoriteRecipe.findMany({
+    where: { userId },
+    select: { recipeId: true }
+  });
+  const favoriteSet = new Set(favorites.map((f) => f.recipeId));
 
   const recipes = await getRecipesWithIngredients();
   res.json({
@@ -50,18 +57,29 @@ recipesRouter.get("/", async (req: AuthedRequest, res) => {
       const match = getRecipeMatchSummary(recipe, pantryIngredientIds);
       return {
         ...recipe,
-        pantryMatch: match
+        pantryMatch: match,
+        isFavorite: favoriteSet.has(recipe.id)
       };
     })
   });
 });
 
 recipesRouter.get("/:recipeId", async (req: AuthedRequest, res) => {
+  const userId = req.user!.id;
   const pantryItems = await prisma.pantryItem.findMany({
-    where: { userId: req.user!.id },
+    where: { userId },
     select: { ingredientId: true }
   });
   const pantryIngredientIds = new Set(pantryItems.map((item) => item.ingredientId));
+
+  const favorite = await prisma.favoriteRecipe.findUnique({
+    where: {
+      userId_recipeId: {
+        userId,
+        recipeId: req.params.recipeId
+      }
+    }
+  });
 
   const recipe = await prisma.recipe.findUnique({
     where: { id: req.params.recipeId },
@@ -80,6 +98,48 @@ recipesRouter.get("/:recipeId", async (req: AuthedRequest, res) => {
 
   res.json({
     ...recipe,
-    pantryMatch: getRecipeMatchSummary(recipe, pantryIngredientIds)
+    pantryMatch: getRecipeMatchSummary(recipe, pantryIngredientIds),
+    isFavorite: !!favorite
   });
 });
+
+recipesRouter.post("/:recipeId/favorite", async (req: AuthedRequest, res) => {
+  const userId = req.user!.id;
+  const recipeId = req.params.recipeId;
+
+  const recipe = await prisma.recipe.findUnique({
+    where: { id: recipeId }
+  });
+  if (!recipe) {
+    res.status(404).json({ message: "Recipe not found" });
+    return;
+  }
+
+  await prisma.favoriteRecipe.upsert({
+    where: {
+      userId_recipeId: { userId, recipeId }
+    },
+    create: { userId, recipeId },
+    update: {}
+  });
+
+  res.json({ success: true });
+});
+
+recipesRouter.delete("/:recipeId/favorite", async (req: AuthedRequest, res) => {
+  const userId = req.user!.id;
+  const recipeId = req.params.recipeId;
+
+  try {
+    await prisma.favoriteRecipe.delete({
+      where: {
+        userId_recipeId: { userId, recipeId }
+      }
+    });
+  } catch (e) {
+    // ignore
+  }
+
+  res.json({ success: true });
+});
+
